@@ -3,33 +3,24 @@ import Foundation
 /// Central handler for all gateway invoke commands
 actor CommandHandler {
     private let permissionManager: PermissionManager
-    
-    // Command handlers
-    private let calendarCommands: CalendarCommands
-    private let contactsCommands: ContactsCommands
-    private let remindersCommands: RemindersCommands
-    private let locationCommands: LocationCommands
-    private let appleScriptCommands: AppleScriptCommands
-    private let fileSystemCommands: FileSystemCommands
-    private let accessibilityCommands: AccessibilityCommands
-    private let screenCaptureCommands: ScreenCaptureCommands
-    private let cameraCommands: CameraCommands
-    private let notificationCommands: NotificationCommands
-    private let shellCommands: ShellCommands
+
+    private let handlers: [(prefix: String, handler: any CommandExecutor)]
     
     init(permissionManager: PermissionManager) {
         self.permissionManager = permissionManager
-        self.calendarCommands = CalendarCommands()
-        self.contactsCommands = ContactsCommands()
-        self.remindersCommands = RemindersCommands()
-        self.locationCommands = LocationCommands()
-        self.appleScriptCommands = AppleScriptCommands()
-        self.fileSystemCommands = FileSystemCommands()
-        self.accessibilityCommands = AccessibilityCommands()
-        self.screenCaptureCommands = ScreenCaptureCommands()
-        self.cameraCommands = CameraCommands()
-        self.notificationCommands = NotificationCommands()
-        self.shellCommands = ShellCommands()
+        self.handlers = [
+            ("calendar.", CalendarCommands()),
+            ("contacts.", ContactsCommands()),
+            ("reminders.", RemindersCommands()),
+            ("location.", LocationCommands()),
+            ("applescript.", AppleScriptCommands()),
+            ("file.", FileSystemCommands()),
+            ("accessibility.", AccessibilityCommands()),
+            ("screen.", ScreenCaptureCommands()),
+            ("camera.", CameraCommands()),
+            ("notification.", NotificationCommands()),
+            ("shell.", ShellCommands())
+        ]
     }
     
     /// Handle an invoke request from the gateway
@@ -57,37 +48,16 @@ actor CommandHandler {
     // MARK: - Command Routing
     
     private func executeCommand(command: String, params: [String: AnyCodable]) async throws -> AnyCodable? {
-        // Route to appropriate handler based on command prefix
-        if command.hasPrefix("calendar.") {
-            return try await calendarCommands.execute(command: command, params: params)
-        } else if command.hasPrefix("contacts.") {
-            return try await contactsCommands.execute(command: command, params: params)
-        } else if command.hasPrefix("reminders.") {
-            return try await remindersCommands.execute(command: command, params: params)
-        } else if command.hasPrefix("location.") {
-            return try await locationCommands.execute(command: command, params: params)
-        } else if command.hasPrefix("applescript.") {
-            return try await appleScriptCommands.execute(command: command, params: params)
-        } else if command.hasPrefix("file.") {
-            return try await fileSystemCommands.execute(command: command, params: params)
-        } else if command.hasPrefix("accessibility.") {
-            return try await accessibilityCommands.execute(command: command, params: params)
-        } else if command.hasPrefix("screen.") {
-            return try await screenCaptureCommands.execute(command: command, params: params)
-        } else if command.hasPrefix("camera.") {
-            return try await cameraCommands.execute(command: command, params: params)
-        } else if command.hasPrefix("notification.") {
-            return try await notificationCommands.execute(command: command, params: params)
-        } else if command.hasPrefix("shell.") {
-            return try await shellCommands.execute(command: command, params: params)
-        } else {
-            throw CommandError(code: "UNKNOWN_COMMAND", message: "Unknown command: \(command)")
+        for handler in handlers where command.hasPrefix(handler.prefix) {
+            return try await handler.handler.execute(command: command, params: params)
         }
+
+        throw CommandError(code: "UNKNOWN_COMMAND", message: "Unknown command: \(command)")
     }
 }
 
 /// Error type for command execution
-struct CommandError: Error {
+struct CommandError: Error, Sendable {
     let code: String
     let message: String
     
@@ -102,6 +72,6 @@ struct CommandError: Error {
 }
 
 /// Protocol for command handlers
-protocol CommandExecutor {
+protocol CommandExecutor: Sendable {
     func execute(command: String, params: [String: AnyCodable]) async throws -> AnyCodable?
 }

@@ -6,11 +6,16 @@ import CryptoKit
 actor DeviceIdentity {
     private var privateKey: P256.Signing.PrivateKey?
     private var deviceId: String?
-    
+
+    private enum Storage {
+        static let directoryName = "GardenBridge"
+        static let fileName = ".device_key"
+    }
+
     private var keyFileURL: URL {
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        let appDir = appSupport.appendingPathComponent("GardenBridge", isDirectory: true)
-        return appDir.appendingPathComponent(".device_key")
+        appSupportDirectory()
+            .appendingPathComponent(Storage.directoryName, isDirectory: true)
+            .appendingPathComponent(Storage.fileName)
     }
     
     init() {
@@ -118,7 +123,7 @@ actor DeviceIdentity {
     
     private func saveKeyToFile(_ key: P256.Signing.PrivateKey) {
         let keyData = key.rawRepresentation
-        
+
         do {
             // Create directory if needed
             let directory = keyFileURL.deletingLastPathComponent()
@@ -134,5 +139,9 @@ actor DeviceIdentity {
         } catch {
             print("Failed to save key to file: \(error)")
         }
+    }
+
+    private func appSupportDirectory() -> URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
     }
 }

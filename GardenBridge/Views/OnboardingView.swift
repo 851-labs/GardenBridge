@@ -5,10 +5,10 @@ struct OnboardingView: View {
     @Environment(ConnectionState.self) private var connectionState
     @Environment(PermissionManager.self) private var permissionManager
     @Environment(\.dismissWindow) private var dismissWindow
-    
-    @State private var currentStep = 0
-    
+
     private let totalSteps = 4
+
+    @State private var currentStep = 0
     
     var body: some View {
         VStack(spacing: 0) {
@@ -17,43 +17,49 @@ struct OnboardingView: View {
                 .padding(.horizontal)
                 .padding(.top)
             
-            // Content based on current step
-            Group {
-                switch currentStep {
-                case 0:
-                    WelcomeStep(onNext: nextStep)
-                case 1:
-                    PermissionsStep(permissionManager: permissionManager, onNext: nextStep, onBack: previousStep)
-                case 2:
-                    ConnectionStep(connectionState: connectionState, onNext: nextStep, onBack: previousStep)
-                case 3:
-                    CompleteStep(onFinish: completeOnboarding)
-                default:
-                    EmptyView()
-                }
-            }
+            stepContent
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(width: 500, height: 450)
     }
-    
-    private func nextStep() {
+
+    @ViewBuilder
+    private var stepContent: some View {
+        switch currentStep {
+        case 0:
+            WelcomeStep(onNext: nextStep)
+        case 1:
+            PermissionsStep(permissionManager: permissionManager, onNext: nextStep, onBack: previousStep)
+        case 2:
+            ConnectionStep(connectionState: connectionState, onNext: nextStep, onBack: previousStep)
+        case 3:
+            CompleteStep(onFinish: completeOnboarding)
+        default:
+            EmptyView()
+        }
+    }
+}
+
+// MARK: - Actions
+
+private extension OnboardingView {
+    func nextStep() {
         withAnimation(.easeInOut(duration: 0.2)) {
             if currentStep < totalSteps - 1 {
                 currentStep += 1
             }
         }
     }
-    
-    private func previousStep() {
+
+    func previousStep() {
         withAnimation(.easeInOut(duration: 0.2)) {
             if currentStep > 0 {
                 currentStep -= 1
             }
         }
     }
-    
-    private func completeOnboarding() {
+
+    func completeOnboarding() {
         if let appDelegate = NSApp.delegate as? AppDelegate {
             appDelegate.completeOnboarding()
         }

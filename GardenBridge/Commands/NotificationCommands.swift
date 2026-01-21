@@ -29,7 +29,7 @@ actor NotificationCommands: CommandExecutor {
         // Request authorization if needed
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
-        
+
         if settings.authorizationStatus == .notDetermined {
             do {
                 try await center.requestAuthorization(options: [.alert, .sound, .badge])
@@ -37,8 +37,9 @@ actor NotificationCommands: CommandExecutor {
                 throw CommandError(code: "NOTIFICATION_AUTH_FAILED", message: "Failed to get notification authorization")
             }
         }
-        
-        if settings.authorizationStatus == .denied {
+
+        let updatedSettings = await center.notificationSettings()
+        if updatedSettings.authorizationStatus == .denied {
             throw CommandError(code: "NOTIFICATION_DENIED", message: "Notification permission denied")
         }
         

@@ -1,9 +1,14 @@
 import Foundation
-import EventKit
+@preconcurrency import EventKit
 
 /// Handles calendar-related commands using EventKit
 actor CalendarCommands: CommandExecutor {
     private let eventStore = EKEventStore()
+    private let dateFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
     
     func execute(command: String, params: [String: AnyCodable]) async throws -> AnyCodable? {
         switch command {
@@ -30,15 +35,11 @@ actor CalendarCommands: CommandExecutor {
             throw CommandError.invalidParam("startDate and endDate are required")
         }
         
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        
-        // Also try without fractional seconds
-        guard let startDate = formatter.date(from: startDateStr) ?? ISO8601DateFormatter().date(from: startDateStr) else {
+        guard let startDate = parseDate(startDateStr) else {
             throw CommandError.invalidParam("startDate must be ISO8601 format")
         }
-        
-        guard let endDate = formatter.date(from: endDateStr) ?? ISO8601DateFormatter().date(from: endDateStr) else {
+
+        guard let endDate = parseDate(endDateStr) else {
             throw CommandError.invalidParam("endDate must be ISO8601 format")
         }
         
@@ -56,8 +57,8 @@ actor CalendarCommands: CommandExecutor {
             var dict: [String: Any] = [
                 "id": event.eventIdentifier ?? "",
                 "title": event.title ?? "",
-                "startDate": formatter.string(from: event.startDate),
-                "endDate": formatter.string(from: event.endDate),
+                "startDate": dateFormatter.string(from: event.startDate),
+                "endDate": dateFormatter.string(from: event.endDate),
                 "isAllDay": event.isAllDay,
                 "calendar": event.calendar?.title ?? ""
             ]
@@ -90,13 +91,11 @@ actor CalendarCommands: CommandExecutor {
             throw CommandError.invalidParam("startDate and endDate are required")
         }
         
-        let formatter = ISO8601DateFormatter()
-        
-        guard let startDate = formatter.date(from: startDateStr) else {
+        guard let startDate = parseDate(startDateStr) else {
             throw CommandError.invalidParam("startDate must be ISO8601 format")
         }
-        
-        guard let endDate = formatter.date(from: endDateStr) else {
+
+        guard let endDate = parseDate(endDateStr) else {
             throw CommandError.invalidParam("endDate must be ISO8601 format")
         }
         
@@ -147,15 +146,13 @@ actor CalendarCommands: CommandExecutor {
             event.title = title
         }
         
-        let formatter = ISO8601DateFormatter()
-        
         if let startDateStr = params["startDate"]?.stringValue,
-           let startDate = formatter.date(from: startDateStr) {
+           let startDate = parseDate(startDateStr) {
             event.startDate = startDate
         }
-        
+
         if let endDateStr = params["endDate"]?.stringValue,
-           let endDate = formatter.date(from: endDateStr) {
+           let endDate = parseDate(endDateStr) {
             event.endDate = endDate
         }
         
@@ -208,5 +205,14 @@ actor CalendarCommands: CommandExecutor {
         }
         
         return AnyCodable(["calendars": calendarDicts])
+    }
+
+    private func parseDate(_ value: String) -> Date? {
+        if let date = dateFormatter.date(from: value) {
+            return date
+        }
+
+        let fallback = ISO8601DateFormatter()
+        return fallback.date(from: value)
     }
 }

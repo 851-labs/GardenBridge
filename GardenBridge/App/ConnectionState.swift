@@ -59,22 +59,14 @@ final class ConnectionState {
     var deviceToken: String?
     var lastError: String?
     var autoConnect: Bool = true
-    
+
+    init() {
+        loadSettings()
+    }
+
     /// The full WebSocket URL for the gateway
     var gatewayURL: URL? {
         URL(string: "ws://\(gatewayHost):\(gatewayPort)")
-    }
-    
-    /// Persisted settings keys
-    private enum Keys {
-        static let gatewayHost = "gatewayHost"
-        static let gatewayPort = "gatewayPort"
-        static let deviceToken = "deviceToken"
-        static let autoConnect = "autoConnect"
-    }
-    
-    init() {
-        loadSettings()
     }
     
     func loadSettings() {
@@ -106,5 +98,13 @@ final class ConnectionState {
     
     func clearError() {
         lastError = nil
+    }
+
+    /// Persisted settings keys
+    private enum Keys {
+        static let gatewayHost = "gatewayHost"
+        static let gatewayPort = "gatewayPort"
+        static let deviceToken = "deviceToken"
+        static let autoConnect = "autoConnect"
     }
 }

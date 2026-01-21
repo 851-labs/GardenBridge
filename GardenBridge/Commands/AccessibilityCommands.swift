@@ -4,7 +4,6 @@ import ApplicationServices
 
 /// Handles accessibility-related commands using Accessibility APIs
 actor AccessibilityCommands: CommandExecutor {
-    
     func execute(command: String, params: [String: AnyCodable]) async throws -> AnyCodable? {
         // Check accessibility permission first
         guard AXIsProcessTrusted() else {
@@ -42,24 +41,7 @@ actor AccessibilityCommands: CommandExecutor {
         let clickType = params["clickType"]?.stringValue ?? "left"
         let clickCount = params["clickCount"]?.intValue ?? 1
         
-        let mouseButton: CGMouseButton
-        let mouseDown: CGEventType
-        let mouseUp: CGEventType
-        
-        switch clickType {
-        case "right":
-            mouseButton = .right
-            mouseDown = .rightMouseDown
-            mouseUp = .rightMouseUp
-        case "middle":
-            mouseButton = .center
-            mouseDown = .otherMouseDown
-            mouseUp = .otherMouseUp
-        default:
-            mouseButton = .left
-            mouseDown = .leftMouseDown
-            mouseUp = .leftMouseUp
-        }
+        let (mouseButton, mouseDown, mouseUp) = mouseEventTypes(for: clickType)
         
         for _ in 0..<clickCount {
             let downEvent = CGEvent(mouseEventSource: nil, mouseType: mouseDown, mouseCursorPosition: point, mouseButton: mouseButton)
@@ -246,6 +228,17 @@ actor AccessibilityCommands: CommandExecutor {
         
         return info
     }
+
+    private func mouseEventTypes(for clickType: String) -> (CGMouseButton, CGEventType, CGEventType) {
+        switch clickType {
+        case "right":
+            return (.right, .rightMouseDown, .rightMouseUp)
+        case "middle":
+            return (.center, .otherMouseDown, .otherMouseUp)
+        default:
+            return (.left, .leftMouseDown, .leftMouseUp)
+        }
+    }
     
     private struct KeyCodeInfo {
         let keyCode: CGKeyCode
@@ -313,5 +306,4 @@ actor AccessibilityCommands: CommandExecutor {
         return nil
     }
 }
-
 

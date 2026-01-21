@@ -2,6 +2,8 @@ import Foundation
 
 /// Handles shell command execution
 actor ShellCommands: CommandExecutor {
+    private let shellURL = URL(fileURLWithPath: "/bin/zsh")
+    private let whichURL = URL(fileURLWithPath: "/usr/bin/which")
     
     func execute(command: String, params: [String: AnyCodable]) async throws -> AnyCodable? {
         switch command {
@@ -23,26 +25,22 @@ actor ShellCommands: CommandExecutor {
         
         let workingDirectory = params["cwd"]?.stringValue
         let timeout = params["timeout"]?.intValue ?? 30
+        let timeoutDuration = Duration.seconds(timeout)
         let environment = params["env"]?.dictionaryValue as? [String: String]
         
         // Create process
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/zsh")
+        process.executableURL = shellURL
         process.arguments = ["-c", command]
         
         // Set working directory if specified
         if let cwd = workingDirectory {
-            let expandedPath = (cwd as NSString).expandingTildeInPath
-            process.currentDirectoryURL = URL(fileURLWithPath: expandedPath)
+            process.currentDirectoryURL = URL(fileURLWithPath: expandPath(cwd))
         }
         
         // Set environment if specified
         if let env = environment {
-            var processEnv = ProcessInfo.processInfo.environment
-            for (key, value) in env {
-                processEnv[key] = value
-            }
-            process.environment = processEnv
+            process.environment = mergedEnvironment(with: env)
         }
         
         // Create pipes for output
@@ -62,7 +60,7 @@ actor ShellCommands: CommandExecutor {
         
         // Wait with timeout
         let timeoutTask = Task {
-            try? await Task.sleep(for: .seconds(timeout))
+            try? await Task.sleep(for: timeoutDuration)
             if process.isRunning {
                 process.terminate()
             }
@@ -101,7 +99,7 @@ actor ShellCommands: CommandExecutor {
         }
         
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/which")
+        process.executableURL = whichURL
         process.arguments = [command]
         
         let pipe = Pipe()
@@ -125,5 +123,17 @@ actor ShellCommands: CommandExecutor {
             "found": found,
             "path": path as Any
         ])
+    }
+
+    private func expandPath(_ path: String) -> String {
+        (path as NSString).expandingTildeInPath
+    }
+
+    private func mergedEnvironment(with overrides: [String: String]) -> [String: String] {
+        var environment = ProcessInfo.processInfo.environment
+        for (key, value) in overrides {
+            environment[key] = value
+        }
+        return environment
     }
 }

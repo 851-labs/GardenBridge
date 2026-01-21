@@ -5,6 +5,10 @@ actor GatewayClient {
     private let connectionState: ConnectionState
     private let commandHandler: CommandHandler
     private let deviceIdentity: DeviceIdentity
+
+    private let connectDelay = Duration.milliseconds(500)
+    private let jsonDecoder = JSONDecoder()
+    private let jsonEncoder = JSONEncoder()
     
     private var webSocketTask: URLSessionWebSocketTask?
     private var urlSession: URLSession?
@@ -24,14 +28,10 @@ actor GatewayClient {
     // MARK: - Public Methods
     
     func connect() async {
-        await MainActor.run {
-            connectionState.setStatus(.connecting)
-        }
+        await updateStatus(.connecting)
         
         guard let url = await connectionState.gatewayURL else {
-            await MainActor.run {
-                connectionState.setStatus(.error("Invalid gateway URL"))
-            }
+            await updateStatus(.error("Invalid gateway URL"))
             return
         }
         
@@ -47,7 +47,7 @@ actor GatewayClient {
         
         // Wait for challenge event, then send connect request
         // The challenge should arrive shortly after connection
-        try? await Task.sleep(for: .milliseconds(500))
+        try? await Task.sleep(for: connectDelay)
         
         // Send connect request
         await sendConnectRequest()
@@ -60,9 +60,7 @@ actor GatewayClient {
         webSocketTask = nil
         urlSession = nil
         
-        await MainActor.run {
-            connectionState.setStatus(.disconnected)
-        }
+        await updateStatus(.disconnected)
     }
     
     // MARK: - Private Methods
@@ -87,9 +85,7 @@ actor GatewayClient {
             } catch {
                 if !Task.isCancelled {
                     print("WebSocket receive error: \(error)")
-                    await MainActor.run {
-                        connectionState.setStatus(.error("Connection lost: \(error.localizedDescription)"))
-                    }
+                    await updateStatus(.error("Connection lost: \(error.localizedDescription)"))
                 }
                 break
             }
@@ -99,14 +95,7 @@ actor GatewayClient {
     private func handleMessage(_ text: String) async {
         guard let data = text.data(using: .utf8) else { return }
         
-        // Try to decode the message type first
-        struct MessageEnvelope: Codable {
-            let type: String
-            let id: String?
-            let event: String?
-        }
-        
-        guard let envelope = try? JSONDecoder().decode(MessageEnvelope.self, from: data) else {
+        guard let envelope = decodeMessageEnvelope(from: data) else {
             print("Failed to decode message envelope: \(text)")
             return
         }
@@ -139,7 +128,7 @@ actor GatewayClient {
                 let payload: ConnectChallengePayload
             }
             
-            if let challenge = try? JSONDecoder().decode(ChallengeEvent.self, from: data) {
+            if let challenge = try? jsonDecoder.decode(ChallengeEvent.self, from: data) {
                 challengeNonce = challenge.payload.nonce
                 challengeTimestamp = challenge.payload.ts
             }
@@ -151,7 +140,7 @@ actor GatewayClient {
     
     private func handleResponse(data: Data, id: String?) async {
         guard let id = id,
-              let response = try? JSONDecoder().decode(GatewayResponse.self, from: data) else {
+              let response = try? jsonDecoder.decode(GatewayResponse.self, from: data) else {
             return
         }
         
@@ -175,16 +164,11 @@ actor GatewayClient {
         if let dict = payload.dictionaryValue,
            let auth = dict["auth"] as? [String: Any],
            let deviceToken = auth["deviceToken"] as? String {
-            await MainActor.run {
-                connectionState.deviceToken = deviceToken
-                connectionState.saveSettings()
-            }
+            await updateDeviceToken(deviceToken)
         }
-        
+
         // Update status to paired
-        await MainActor.run {
-            connectionState.setStatus(.paired)
-        }
+        await updateStatus(.paired)
         
         // Start ping task
         pingTask = Task {
@@ -193,7 +177,7 @@ actor GatewayClient {
     }
     
     private func handleInvoke(data: Data) async {
-        guard let invoke = try? JSONDecoder().decode(GatewayInvoke.self, from: data) else {
+        guard let invoke = try? jsonDecoder.decode(GatewayInvoke.self, from: data) else {
             print("Failed to decode invoke message")
             return
         }
@@ -264,18 +248,31 @@ actor GatewayClient {
         )
         
         await sendRequest(request)
-        
+
         // Update status to connected (awaiting pairing)
+        await updateStatus(.connected)
+    }
+
+    // MARK: - Main Actor Updates
+
+    private func updateStatus(_ status: GatewayConnectionStatus) async {
         await MainActor.run {
-            connectionState.setStatus(.connected)
+            connectionState.setStatus(status)
+        }
+    }
+
+    private func updateDeviceToken(_ token: String) async {
+        await MainActor.run {
+            connectionState.deviceToken = token
+            connectionState.saveSettings()
         }
     }
     
     private func sendRequest(_ request: GatewayRequest) async {
         guard let webSocket = webSocketTask else { return }
-        
+
         do {
-            let data = try JSONEncoder().encode(request)
+            let data = try jsonEncoder.encode(request)
             if let text = String(data: data, encoding: .utf8) {
                 try await webSocket.send(.string(text))
             }
@@ -286,9 +283,9 @@ actor GatewayClient {
     
     private func sendInvokeResponse(_ response: GatewayInvokeResponse) async {
         guard let webSocket = webSocketTask else { return }
-        
+
         do {
-            let data = try JSONEncoder().encode(response)
+            let data = try jsonEncoder.encode(response)
             if let text = String(data: data, encoding: .utf8) {
                 try await webSocket.send(.string(text))
             }
@@ -331,4 +328,14 @@ actor GatewayClient {
             }
         }
     }
+
+    private func decodeMessageEnvelope(from data: Data) -> MessageEnvelope? {
+        try? jsonDecoder.decode(MessageEnvelope.self, from: data)
+    }
+}
+
+private struct MessageEnvelope: Codable {
+    let type: String
+    let id: String?
+    let event: String?
 }

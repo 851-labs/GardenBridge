@@ -2,7 +2,7 @@ import Foundation
 import Observation
 import EventKit
 import Contacts
-import CoreLocation
+@preconcurrency import CoreLocation
 import AVFoundation
 import ScreenCaptureKit
 import AppKit
@@ -23,8 +23,9 @@ enum PermissionStatus: String, Sendable {
 /// Manages macOS permissions for all capabilities
 @Observable
 @MainActor
-final class PermissionManager: NSObject, CLLocationManagerDelegate {
-    // Permission statuses
+final class PermissionManager: NSObject {
+    // MARK: - Permission Statuses
+
     var calendarStatus: PermissionStatus = .notDetermined
     var remindersStatus: PermissionStatus = .notDetermined
     var contactsStatus: PermissionStatus = .notDetermined
@@ -36,7 +37,8 @@ final class PermissionManager: NSObject, CLLocationManagerDelegate {
     var fullDiskAccessStatus: PermissionStatus = .notDetermined
     var automationStatus: PermissionStatus = .notDetermined
     
-    // Services
+    // MARK: - Services
+
     private let eventStore = EKEventStore()
     private var _contactStore: CNContactStore?
     private var contactStore: CNContactStore {
@@ -46,35 +48,35 @@ final class PermissionManager: NSObject, CLLocationManagerDelegate {
         return _contactStore!
     }
     private var locationManager: CLLocationManager?
+    private var locationDelegate: LocationAuthorizationDelegate?
+
+    private enum SettingsURL {
+        static let accessibility = "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+        static let fullDiskAccess = "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles"
+        static let automation = "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation"
+        static let screenRecording = "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
+    }
+
+    private let fullDiskAccessTestPath = "Library/Safari/Bookmarks.plist"
     
     override init() {
         super.init()
         setupLocationManager()
-        // Refresh non-Contacts statuses on init
-        // Contacts status is checked lazily to avoid CNContactStore warnings
-        refreshCalendarStatus()
-        refreshRemindersStatus()
-        refreshLocationStatus()
-        refreshCameraStatus()
-        refreshMicrophoneStatus()
-        refreshScreenCaptureStatus()
-        refreshAccessibilityStatus()
-        refreshFullDiskAccessStatus()
-        refreshAutomationStatus()
+        refreshInitialStatuses()
     }
     
     private func setupLocationManager() {
-        locationManager = CLLocationManager()
-        locationManager?.delegate = self
-    }
-    
-    // MARK: - CLLocationManagerDelegate
-    
-    nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        Task { @MainActor in
-            refreshLocationStatus()
+        let manager = CLLocationManager()
+        let delegate = LocationAuthorizationDelegate { [weak self] in
+            Task { @MainActor in
+                self?.refreshLocationStatus()
+            }
         }
+        manager.delegate = delegate
+        locationManager = manager
+        locationDelegate = delegate
     }
+    
     
     // MARK: - Status Refresh
     
@@ -126,13 +128,7 @@ final class PermissionManager: NSObject, CLLocationManagerDelegate {
     }
     
     func refreshScreenCaptureStatus() {
-        // Screen capture permission is checked differently
-        // We check if we can get the display list
-        if CGPreflightScreenCaptureAccess() {
-            screenCaptureStatus = .authorized
-        } else {
-            screenCaptureStatus = .notDetermined
-        }
+        screenCaptureStatus = CGPreflightScreenCaptureAccess() ? .authorized : .notDetermined
     }
     
     func refreshAccessibilityStatus() {
@@ -141,13 +137,8 @@ final class PermissionManager: NSObject, CLLocationManagerDelegate {
     }
     
     func refreshFullDiskAccessStatus() {
-        // Check full disk access by trying to read a protected file
-        let testPath = "\(NSHomeDirectory())/Library/Safari/Bookmarks.plist"
-        if FileManager.default.isReadableFile(atPath: testPath) {
-            fullDiskAccessStatus = .authorized
-        } else {
-            fullDiskAccessStatus = .notDetermined
-        }
+        let testPath = (NSHomeDirectory() as NSString).appendingPathComponent(fullDiskAccessTestPath)
+        fullDiskAccessStatus = FileManager.default.isReadableFile(atPath: testPath) ? .authorized : .notDetermined
     }
     
     func refreshAutomationStatus() {
@@ -214,23 +205,19 @@ final class PermissionManager: NSObject, CLLocationManagerDelegate {
     }
     
     func openAccessibilitySettings() {
-        let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
-        NSWorkspace.shared.open(url)
+        openSystemSettings(SettingsURL.accessibility)
     }
     
     func openFullDiskAccessSettings() {
-        let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")!
-        NSWorkspace.shared.open(url)
+        openSystemSettings(SettingsURL.fullDiskAccess)
     }
     
     func openAutomationSettings() {
-        let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation")!
-        NSWorkspace.shared.open(url)
+        openSystemSettings(SettingsURL.automation)
     }
     
     func openScreenRecordingSettings() {
-        let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!
-        NSWorkspace.shared.open(url)
+        openSystemSettings(SettingsURL.screenRecording)
     }
     
     // MARK: - Get Permissions Dictionary
@@ -257,6 +244,23 @@ final class PermissionManager: NSObject, CLLocationManagerDelegate {
     }
     
     // MARK: - Private Helpers
+
+    private func refreshInitialStatuses() {
+        refreshCalendarStatus()
+        refreshRemindersStatus()
+        refreshLocationStatus()
+        refreshCameraStatus()
+        refreshMicrophoneStatus()
+        refreshScreenCaptureStatus()
+        refreshAccessibilityStatus()
+        refreshFullDiskAccessStatus()
+        refreshAutomationStatus()
+    }
+
+    private func openSystemSettings(_ urlString: String) {
+        guard let url = URL(string: urlString) else { return }
+        NSWorkspace.shared.open(url)
+    }
     
     private func convertEKAuthStatus(_ status: EKAuthorizationStatus) -> PermissionStatus {
         switch status {
@@ -297,5 +301,20 @@ final class PermissionManager: NSObject, CLLocationManagerDelegate {
         case .authorized: return .authorized
         @unknown default: return .notDetermined
         }
+    }
+}
+
+// MARK: - Location Authorization Delegate
+
+private final class LocationAuthorizationDelegate: NSObject, CLLocationManagerDelegate {
+    private let onAuthorizationChange: @Sendable () -> Void
+
+    init(onAuthorizationChange: @escaping @Sendable () -> Void) {
+        self.onAuthorizationChange = onAuthorizationChange
+        super.init()
+    }
+
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        onAuthorizationChange()
     }
 }

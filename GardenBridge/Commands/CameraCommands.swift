@@ -1,9 +1,10 @@
 import Foundation
-import AVFoundation
+@preconcurrency import AVFoundation
 import AppKit
 
 /// Handles camera capture commands using AVFoundation
 actor CameraCommands: CommandExecutor {
+    private var activeDelegate: PhotoCaptureDelegate?
     
     func execute(command: String, params: [String: AnyCodable]) async throws -> AnyCodable? {
         switch command {
@@ -21,7 +22,7 @@ actor CameraCommands: CommandExecutor {
     private func capturePhoto(params: [String: AnyCodable]) async throws -> AnyCodable {
         let cameraId = params["camera"]?.stringValue
         let format = params["format"]?.stringValue ?? "jpeg"
-        let quality = params["quality"]?.doubleValue ?? 0.9
+        _ = params["quality"]?.doubleValue ?? 0.9
         
         // Get available cameras
         let discoverySession = AVCaptureDevice.DiscoverySession(
@@ -79,15 +80,16 @@ actor CameraCommands: CommandExecutor {
         
         // Capture photo using delegate
         let photo = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<AVCapturePhoto, Error>) in
-            let delegate = PhotoCaptureDelegate(continuation: continuation)
+            let delegate = PhotoCaptureDelegate(continuation: continuation) { [weak self] in
+                Task {
+                    await self?.storeActiveDelegate(nil)
+                }
+            }
+            Task {
+                await storeActiveDelegate(delegate)
+            }
             let settings = AVCapturePhotoSettings()
             output.capturePhoto(with: settings, delegate: delegate)
-            
-            // Keep delegate alive
-            Task { @MainActor in
-                // Store reference to prevent deallocation
-                _ = delegate
-            }
         }
         
         // Stop session
@@ -160,18 +162,24 @@ actor CameraCommands: CommandExecutor {
         @unknown default: return "unknown"
         }
     }
+
+    private func storeActiveDelegate(_ delegate: PhotoCaptureDelegate?) async {
+        activeDelegate = delegate
+    }
 }
 
 // MARK: - Photo Capture Delegate
 
-private class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate {
+private class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate, @unchecked Sendable {
     private var continuation: CheckedContinuation<AVCapturePhoto, Error>?
-    
-    init(continuation: CheckedContinuation<AVCapturePhoto, Error>) {
+    private let onFinish: @Sendable () -> Void
+
+    init(continuation: CheckedContinuation<AVCapturePhoto, Error>, onFinish: @escaping @Sendable () -> Void) {
         self.continuation = continuation
+        self.onFinish = onFinish
         super.init()
     }
-    
+
     func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
         if let error = error {
             continuation?.resume(throwing: error)
@@ -179,5 +187,6 @@ private class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate {
             continuation?.resume(returning: photo)
         }
         continuation = nil
+        onFinish()
     }
 }

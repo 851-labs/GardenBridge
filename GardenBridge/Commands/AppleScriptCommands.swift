@@ -1,5 +1,4 @@
 import Foundation
-import Carbon
 
 /// Handles AppleScript execution commands
 actor AppleScriptCommands: CommandExecutor {

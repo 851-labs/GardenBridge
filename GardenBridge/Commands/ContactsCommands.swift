@@ -1,9 +1,37 @@
 import Foundation
-import Contacts
+@preconcurrency import Contacts
 
 /// Handles contacts-related commands using Contacts framework
 actor ContactsCommands: CommandExecutor {
     private var contactStore: CNContactStore?
+
+    private let basicKeys: [CNKeyDescriptor] = [
+        CNContactIdentifierKey as CNKeyDescriptor,
+        CNContactGivenNameKey as CNKeyDescriptor,
+        CNContactFamilyNameKey as CNKeyDescriptor,
+        CNContactOrganizationNameKey as CNKeyDescriptor,
+        CNContactEmailAddressesKey as CNKeyDescriptor,
+        CNContactPhoneNumbersKey as CNKeyDescriptor,
+        CNContactBirthdayKey as CNKeyDescriptor,
+        CNContactImageDataAvailableKey as CNKeyDescriptor
+    ]
+
+    private let detailedKeys: [CNKeyDescriptor] = [
+        CNContactIdentifierKey as CNKeyDescriptor,
+        CNContactGivenNameKey as CNKeyDescriptor,
+        CNContactFamilyNameKey as CNKeyDescriptor,
+        CNContactMiddleNameKey as CNKeyDescriptor,
+        CNContactOrganizationNameKey as CNKeyDescriptor,
+        CNContactJobTitleKey as CNKeyDescriptor,
+        CNContactEmailAddressesKey as CNKeyDescriptor,
+        CNContactPhoneNumbersKey as CNKeyDescriptor,
+        CNContactPostalAddressesKey as CNKeyDescriptor,
+        CNContactBirthdayKey as CNKeyDescriptor,
+        CNContactNoteKey as CNKeyDescriptor,
+        CNContactUrlAddressesKey as CNKeyDescriptor,
+        CNContactSocialProfilesKey as CNKeyDescriptor,
+        CNContactImageDataAvailableKey as CNKeyDescriptor
+    ]
 
     private func getContactStore() -> CNContactStore {
         if let contactStore {
@@ -33,20 +61,9 @@ actor ContactsCommands: CommandExecutor {
         let query = params["query"]?.stringValue ?? ""
         let limit = params["limit"]?.intValue ?? 50
         
-        let keysToFetch: [CNKeyDescriptor] = [
-            CNContactIdentifierKey as CNKeyDescriptor,
-            CNContactGivenNameKey as CNKeyDescriptor,
-            CNContactFamilyNameKey as CNKeyDescriptor,
-            CNContactOrganizationNameKey as CNKeyDescriptor,
-            CNContactEmailAddressesKey as CNKeyDescriptor,
-            CNContactPhoneNumbersKey as CNKeyDescriptor,
-            CNContactBirthdayKey as CNKeyDescriptor,
-            CNContactImageDataAvailableKey as CNKeyDescriptor
-        ]
-        
         var contacts: [CNContact] = []
-        
-        let request = CNContactFetchRequest(keysToFetch: keysToFetch)
+
+        let request = CNContactFetchRequest(keysToFetch: basicKeys)
         
         if !query.isEmpty {
             request.predicate = CNContact.predicateForContacts(matchingName: query)
@@ -71,25 +88,8 @@ actor ContactsCommands: CommandExecutor {
             throw CommandError.invalidParam("id")
         }
         
-        let keysToFetch: [CNKeyDescriptor] = [
-            CNContactIdentifierKey as CNKeyDescriptor,
-            CNContactGivenNameKey as CNKeyDescriptor,
-            CNContactFamilyNameKey as CNKeyDescriptor,
-            CNContactMiddleNameKey as CNKeyDescriptor,
-            CNContactOrganizationNameKey as CNKeyDescriptor,
-            CNContactJobTitleKey as CNKeyDescriptor,
-            CNContactEmailAddressesKey as CNKeyDescriptor,
-            CNContactPhoneNumbersKey as CNKeyDescriptor,
-            CNContactPostalAddressesKey as CNKeyDescriptor,
-            CNContactBirthdayKey as CNKeyDescriptor,
-            CNContactNoteKey as CNKeyDescriptor,
-            CNContactUrlAddressesKey as CNKeyDescriptor,
-            CNContactSocialProfilesKey as CNKeyDescriptor,
-            CNContactImageDataAvailableKey as CNKeyDescriptor
-        ]
-        
         do {
-            let contact = try getContactStore().unifiedContact(withIdentifier: contactId, keysToFetch: keysToFetch)
+            let contact = try getContactStore().unifiedContact(withIdentifier: contactId, keysToFetch: detailedKeys)
             return AnyCodable(["contact": formatContactDetailed(contact)])
         } catch {
             throw CommandError.notFound

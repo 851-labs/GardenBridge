@@ -18,12 +18,13 @@ enum GatewayMessageType: String, Codable, Sendable {
 
 /// Request message sent to gateway
 struct GatewayRequest: Codable, Sendable {
-    let type: String = "req"
+    let type: String
     let id: String
     let method: String
     let params: [String: AnyCodable]?
     
-    init(id: String = UUID().uuidString, method: String, params: [String: AnyCodable]? = nil) {
+    init(type: String = "req", id: String = UUID().uuidString, method: String, params: [String: AnyCodable]? = nil) {
+        self.type = type
         self.id = id
         self.method = method
         self.params = params
@@ -64,13 +65,14 @@ struct GatewayInvoke: Codable, Sendable {
 
 /// Invoke response message to gateway
 struct GatewayInvokeResponse: Codable, Sendable {
-    let type: String = "invoke-res"
+    let type: String
     let id: String
     let ok: Bool
     let payload: AnyCodable?
     let error: GatewayError?
     
-    init(id: String, ok: Bool, payload: AnyCodable? = nil, error: GatewayError? = nil) {
+    init(type: String = "invoke-res", id: String, ok: Bool, payload: AnyCodable? = nil, error: GatewayError? = nil) {
+        self.type = type
         self.id = id
         self.ok = ok
         self.payload = payload

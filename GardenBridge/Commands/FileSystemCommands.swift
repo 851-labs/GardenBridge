@@ -29,8 +29,8 @@ actor FileSystemCommands: CommandExecutor {
         guard let path = params["path"]?.stringValue else {
             throw CommandError.invalidParam("path")
         }
-        
-        let expandedPath = (path as NSString).expandingTildeInPath
+
+        let expandedPath = expandPath(path)
         
         guard fileManager.fileExists(atPath: expandedPath) else {
             throw CommandError.notFound
@@ -49,19 +49,7 @@ actor FileSystemCommands: CommandExecutor {
         }
         
         // Text read
-        let stringEncoding: String.Encoding
-        switch encoding.lowercased() {
-        case "utf8", "utf-8":
-            stringEncoding = .utf8
-        case "ascii":
-            stringEncoding = .ascii
-        case "utf16", "utf-16":
-            stringEncoding = .utf16
-        case "latin1", "iso-8859-1":
-            stringEncoding = .isoLatin1
-        default:
-            stringEncoding = .utf8
-        }
+        let stringEncoding = stringEncoding(for: encoding)
         
         let content = try String(contentsOfFile: expandedPath, encoding: stringEncoding)
         
@@ -83,7 +71,7 @@ actor FileSystemCommands: CommandExecutor {
             throw CommandError.invalidParam("content")
         }
         
-        let expandedPath = (path as NSString).expandingTildeInPath
+        let expandedPath = expandPath(path)
         let url = URL(fileURLWithPath: expandedPath)
         
         // Create parent directory if needed
@@ -100,17 +88,7 @@ actor FileSystemCommands: CommandExecutor {
             try data.write(to: url)
         } else {
             let encoding = params["encoding"]?.stringValue ?? "utf8"
-            let stringEncoding: String.Encoding
-            switch encoding.lowercased() {
-            case "utf8", "utf-8":
-                stringEncoding = .utf8
-            case "ascii":
-                stringEncoding = .ascii
-            case "utf16", "utf-16":
-                stringEncoding = .utf16
-            default:
-                stringEncoding = .utf8
-            }
+            let stringEncoding = stringEncoding(for: encoding)
             
             let append = params["append"]?.boolValue ?? false
             
@@ -139,7 +117,7 @@ actor FileSystemCommands: CommandExecutor {
             throw CommandError.invalidParam("path")
         }
         
-        let expandedPath = (path as NSString).expandingTildeInPath
+        let expandedPath = expandPath(path)
         let recursive = params["recursive"]?.boolValue ?? false
         let includeHidden = params["includeHidden"]?.boolValue ?? false
         
@@ -194,7 +172,7 @@ actor FileSystemCommands: CommandExecutor {
             throw CommandError.invalidParam("path")
         }
         
-        let expandedPath = (path as NSString).expandingTildeInPath
+        let expandedPath = expandPath(path)
         var isDirectory: ObjCBool = false
         let exists = fileManager.fileExists(atPath: expandedPath, isDirectory: &isDirectory)
         
@@ -212,7 +190,7 @@ actor FileSystemCommands: CommandExecutor {
             throw CommandError.invalidParam("path")
         }
         
-        let expandedPath = (path as NSString).expandingTildeInPath
+        let expandedPath = expandPath(path)
         
         guard fileManager.fileExists(atPath: expandedPath) else {
             throw CommandError.notFound
@@ -233,7 +211,7 @@ actor FileSystemCommands: CommandExecutor {
             throw CommandError.invalidParam("path")
         }
         
-        let expandedPath = (path as NSString).expandingTildeInPath
+        let expandedPath = expandPath(path)
         
         guard let info = getFileInfo(path: expandedPath) else {
             throw CommandError.notFound
@@ -272,5 +250,19 @@ actor FileSystemCommands: CommandExecutor {
         }
         
         return info
+    }
+
+    private func expandPath(_ path: String) -> String {
+        (path as NSString).expandingTildeInPath
+    }
+
+    private func stringEncoding(for encoding: String) -> String.Encoding {
+        switch encoding.lowercased() {
+        case "utf8", "utf-8": return .utf8
+        case "ascii": return .ascii
+        case "utf16", "utf-16": return .utf16
+        case "latin1", "iso-8859-1": return .isoLatin1
+        default: return .utf8
+        }
     }
 }

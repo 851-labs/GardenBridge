@@ -4,24 +4,19 @@ import SwiftUI
 struct MenuBarView: View {
     @Environment(ConnectionState.self) private var connectionState
     @Environment(PermissionManager.self) private var permissionManager
+
+    private let menuWidth: CGFloat = 280
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Connection Status
             connectionStatusSection
-            
             Divider()
-            
-            // Quick Actions
             quickActionsSection
-            
             Divider()
-            
-            // Footer
             footerSection
         }
         .padding()
-        .frame(width: 280)
+        .frame(width: menuWidth)
     }
     
     // MARK: - Connection Status Section

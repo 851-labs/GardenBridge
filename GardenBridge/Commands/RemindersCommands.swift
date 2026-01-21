@@ -1,7 +1,8 @@
 import Foundation
-import EventKit
+@preconcurrency import EventKit
 
 /// Handles reminders-related commands using EventKit
+@preconcurrency
 actor RemindersCommands: CommandExecutor {
     private let eventStore = EKEventStore()
     
@@ -42,43 +43,48 @@ actor RemindersCommands: CommandExecutor {
             predicate = eventStore.predicateForIncompleteReminders(withDueDateStarting: nil, ending: nil, calendars: calendars)
         }
         
-        let reminders = await withCheckedContinuation { continuation in
-            eventStore.fetchReminders(matching: predicate) { reminders in
-                continuation.resume(returning: reminders ?? [])
+        let reminderDicts = await withCheckedContinuation { continuation in
+            eventStore.fetchReminders(matching: predicate) { [weak self] reminders in
+                Task {
+                    let dicts = await self?.formatReminders(reminders ?? []) ?? []
+                    continuation.resume(returning: dicts)
+                }
             }
         }
         
+        return AnyCodable(["reminders": reminderDicts, "count": reminderDicts.count])
+    }
+
+    private func formatReminders(_ reminders: [EKReminder]) async -> [[String: Any]] {
         let formatter = ISO8601DateFormatter()
-        
-        let reminderDicts = reminders.map { reminder -> [String: Any] in
+
+        return reminders.map { reminder -> [String: Any] in
             var dict: [String: Any] = [
                 "id": reminder.calendarItemIdentifier,
                 "title": reminder.title ?? "",
                 "isCompleted": reminder.isCompleted,
                 "list": reminder.calendar?.title ?? ""
             ]
-            
+
             if let dueDate = reminder.dueDateComponents,
                let date = Calendar.current.date(from: dueDate) {
                 dict["dueDate"] = formatter.string(from: date)
             }
-            
+
             if let completionDate = reminder.completionDate {
                 dict["completionDate"] = formatter.string(from: completionDate)
             }
-            
+
             if let priority = reminder.priority as Int?, priority > 0 {
                 dict["priority"] = priority
             }
-            
+
             if let notes = reminder.notes {
                 dict["notes"] = notes
             }
-            
+
             return dict
         }
-        
-        return AnyCodable(["reminders": reminderDicts, "count": reminderDicts.count])
     }
     
     // MARK: - Create Reminder
