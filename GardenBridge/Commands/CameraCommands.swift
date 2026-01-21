@@ -25,7 +25,7 @@ actor CameraCommands: CommandExecutor {
         
         // Get available cameras
         let discoverySession = AVCaptureDevice.DiscoverySession(
-            deviceTypes: [.builtInWideAngleCamera, .externalUnknown],
+            deviceTypes: [.builtInWideAngleCamera, .external],
             mediaType: .video,
             position: .unspecified
         )
@@ -130,7 +130,7 @@ actor CameraCommands: CommandExecutor {
     
     private func listCameras() async throws -> AnyCodable {
         let discoverySession = AVCaptureDevice.DiscoverySession(
-            deviceTypes: [.builtInWideAngleCamera, .externalUnknown],
+            deviceTypes: [.builtInWideAngleCamera, .external],
             mediaType: .video,
             position: .unspecified
         )

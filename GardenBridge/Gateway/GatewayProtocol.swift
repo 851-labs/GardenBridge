@@ -155,8 +155,8 @@ struct ConnectChallengePayload: Codable, Sendable {
 // MARK: - AnyCodable Helper
 
 /// Type-erased Codable wrapper for dynamic JSON values
-struct AnyCodable: Codable, Sendable, Hashable {
-    let value: Any
+struct AnyCodable: Codable, Hashable, @unchecked Sendable {
+    nonisolated(unsafe) let value: Any
     
     init(_ value: Any) {
         self.value = value

@@ -77,10 +77,14 @@ actor LocationCommands: CommandExecutor {
 
 // MARK: - Location Delegate Wrapper
 
-@MainActor
-private class LocationDelegateWrapper: NSObject, CLLocationManagerDelegate {
+private class LocationDelegateWrapper: NSObject, CLLocationManagerDelegate, @unchecked Sendable {
     private var continuation: CheckedContinuation<CLLocation, Error>?
-    var isCompleted = false
+    private var _isCompleted = false
+    private let lock = NSLock()
+    
+    var isCompleted: Bool {
+        lock.withLock { _isCompleted }
+    }
     
     init(continuation: CheckedContinuation<CLLocation, Error>) {
         self.continuation = continuation
@@ -88,23 +92,29 @@ private class LocationDelegateWrapper: NSObject, CLLocationManagerDelegate {
     }
     
     func complete(with error: Error) {
-        guard !isCompleted else { return }
-        isCompleted = true
-        continuation?.resume(throwing: error)
-        continuation = nil
+        lock.withLock {
+            guard !_isCompleted else { return }
+            _isCompleted = true
+            continuation?.resume(throwing: error)
+            continuation = nil
+        }
     }
     
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        guard !isCompleted, let location = locations.last else { return }
-        isCompleted = true
-        continuation?.resume(returning: location)
-        continuation = nil
+    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        lock.withLock {
+            guard !_isCompleted, let location = locations.last else { return }
+            _isCompleted = true
+            continuation?.resume(returning: location)
+            continuation = nil
+        }
     }
     
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        guard !isCompleted else { return }
-        isCompleted = true
-        continuation?.resume(throwing: CommandError(code: "LOCATION_ERROR", message: error.localizedDescription))
-        continuation = nil
+    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        lock.withLock {
+            guard !_isCompleted else { return }
+            _isCompleted = true
+            continuation?.resume(throwing: CommandError(code: "LOCATION_ERROR", message: error.localizedDescription))
+            continuation = nil
+        }
     }
 }

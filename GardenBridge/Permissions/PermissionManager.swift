@@ -62,16 +62,12 @@ final class PermissionManager {
     
     func refreshCalendarStatus() {
         let status = EKEventStore.authorizationStatus(for: .event)
-        print("Calendar EKAuthorizationStatus: \(status.rawValue)")
         calendarStatus = convertEKAuthStatus(status)
-        print("Calendar PermissionStatus: \(calendarStatus)")
     }
     
     func refreshRemindersStatus() {
         let status = EKEventStore.authorizationStatus(for: .reminder)
-        print("Reminders EKAuthorizationStatus: \(status.rawValue)")
         remindersStatus = convertEKAuthStatus(status)
-        print("Reminders PermissionStatus: \(remindersStatus)")
     }
     
     func refreshContactsStatus() {
@@ -234,14 +230,13 @@ final class PermissionManager {
     // MARK: - Private Helpers
     
     private func convertEKAuthStatus(_ status: EKAuthorizationStatus) -> PermissionStatus {
-        // EKAuthorizationStatus raw values:
-        // 0 = notDetermined, 1 = restricted, 2 = denied, 3 = authorized (legacy), 4 = fullAccess, 5 = writeOnly
-        switch status.rawValue {
-        case 0: return .notDetermined
-        case 1: return .restricted
-        case 2: return .denied
-        case 3, 4, 5: return .authorized  // 3=authorized(legacy), 4=fullAccess, 5=writeOnly
-        default: return .notDetermined
+        switch status {
+        case .notDetermined: return .notDetermined
+        case .restricted: return .restricted
+        case .denied: return .denied
+        case .fullAccess: return .authorized
+        case .writeOnly: return .authorized
+        @unknown default: return .notDetermined
         }
     }
     

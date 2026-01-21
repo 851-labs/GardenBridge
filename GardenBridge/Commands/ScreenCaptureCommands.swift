@@ -1,5 +1,5 @@
 import Foundation
-import ScreenCaptureKit
+@preconcurrency import ScreenCaptureKit
 import CoreGraphics
 import AppKit
 
@@ -30,29 +30,25 @@ actor ScreenCaptureCommands: CommandExecutor {
         let format = params["format"]?.stringValue ?? "png"
         let quality = params["quality"]?.doubleValue ?? 0.9
         
-        // Get available displays
-        let content = try await SCShareableContent.current
+        // Get available displays using ScreenCaptureKit
+        let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
         
         guard let display = content.displays.first(where: { $0.displayID == CGDirectDisplayID(displayId) }) ?? content.displays.first else {
             throw CommandError(code: "DISPLAY_NOT_FOUND", message: "Display not found")
         }
         
+        // Create filter for the display
+        let filter = SCContentFilter(display: display, excludingWindows: [])
+        
         // Create stream configuration
         let config = SCStreamConfiguration()
         config.width = display.width * 2  // Retina
         config.height = display.height * 2
-        config.minimumFrameInterval = CMTime(value: 1, timescale: 1)
-        config.queueDepth = 1
         
-        // Create filter for the display
-        let filter = SCContentFilter(display: display, excludingWindows: [])
+        // Capture screenshot using ScreenCaptureKit
+        let image = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
         
-        // Capture using CGDisplayCreateImage as a simpler approach
-        guard let cgImage = CGDisplayCreateImage(CGDirectDisplayID(displayId)) else {
-            throw CommandError(code: "CAPTURE_FAILED", message: "Failed to capture screen")
-        }
-        
-        let nsImage = NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
+        let nsImage = NSImage(cgImage: image, size: NSSize(width: image.width, height: image.height))
         
         // Convert to requested format
         guard let tiffData = nsImage.tiffRepresentation,
@@ -85,8 +81,8 @@ actor ScreenCaptureCommands: CommandExecutor {
         return AnyCodable([
             "format": format,
             "mimeType": mimeType,
-            "width": cgImage.width,
-            "height": cgImage.height,
+            "width": image.width,
+            "height": image.height,
             "base64": data.base64EncodedString()
         ])
     }
@@ -94,7 +90,7 @@ actor ScreenCaptureCommands: CommandExecutor {
     // MARK: - List Displays
     
     private func listDisplays() async throws -> AnyCodable {
-        let content = try await SCShareableContent.current
+        let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
         
         let displays = content.displays.map { display -> [String: Any] in
             [
