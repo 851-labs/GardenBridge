@@ -184,10 +184,15 @@ struct PermissionsTab: View {
                 name: "Microphone",
                 status: permissionManager.microphoneStatus,
                 action: {
-                    performPermissionRequest {
-                        _ = await permissionManager.requestMicrophoneAccess()
+                    if permissionManager.microphoneStatus == .denied {
+                        permissionManager.openMicrophoneSettings()
+                    } else {
+                        performPermissionRequest {
+                            _ = await permissionManager.requestMicrophoneAccess()
+                        }
                     }
-                }
+                },
+                opensSettings: permissionManager.microphoneStatus == .denied
             )
         } header: {
             Text("System Permissions")

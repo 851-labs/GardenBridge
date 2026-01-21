@@ -55,6 +55,7 @@ final class PermissionManager: NSObject {
         static let fullDiskAccess = "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles"
         static let automation = "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation"
         static let screenRecording = "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
+        static let microphone = "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone"
     }
 
     private let fullDiskAccessTestPath = "Library/Safari/Bookmarks.plist"
@@ -218,6 +219,10 @@ final class PermissionManager: NSObject {
     
     func openScreenRecordingSettings() {
         openSystemSettings(SettingsURL.screenRecording)
+    }
+
+    func openMicrophoneSettings() {
+        openSystemSettings(SettingsURL.microphone)
     }
     
     // MARK: - Get Permissions Dictionary
