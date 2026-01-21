@@ -81,7 +81,11 @@ final class PermissionManager: NSObject, CLLocationManagerDelegate {
     func refreshAllStatuses() {
         refreshCalendarStatus()
         refreshRemindersStatus()
-        refreshContactsStatus()
+        // Skip refreshContactsStatus() here - it triggers Apple framework warnings
+        // Contacts status is only checked after user requests access
+        if _contactStore != nil {
+            refreshContactsStatus()
+        }
         refreshLocationStatus()
         refreshCameraStatus()
         refreshMicrophoneStatus()
