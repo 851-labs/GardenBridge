@@ -84,11 +84,7 @@ final class PermissionManager: NSObject {
     func refreshAllStatuses() {
         refreshCalendarStatus()
         refreshRemindersStatus()
-        // Skip refreshContactsStatus() here - it triggers Apple framework warnings
-        // Contacts status is only checked after user requests access
-        if _contactStore != nil {
-            refreshContactsStatus()
-        }
+        refreshContactsStatus()
         refreshLocationStatus()
         refreshCameraStatus()
         refreshMicrophoneStatus()
@@ -253,6 +249,7 @@ final class PermissionManager: NSObject {
     private func refreshInitialStatuses() {
         refreshCalendarStatus()
         refreshRemindersStatus()
+        refreshContactsStatus()
         refreshLocationStatus()
         refreshCameraStatus()
         refreshMicrophoneStatus()
