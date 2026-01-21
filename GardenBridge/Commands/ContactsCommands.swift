@@ -3,7 +3,16 @@ import Contacts
 
 /// Handles contacts-related commands using Contacts framework
 actor ContactsCommands: CommandExecutor {
-    private let contactStore = CNContactStore()
+    private var contactStore: CNContactStore?
+
+    private func getContactStore() -> CNContactStore {
+        if let contactStore {
+            return contactStore
+        }
+        let store = CNContactStore()
+        contactStore = store
+        return store
+    }
     
     func execute(command: String, params: [String: AnyCodable]) async throws -> AnyCodable? {
         switch command {
@@ -43,7 +52,7 @@ actor ContactsCommands: CommandExecutor {
             request.predicate = CNContact.predicateForContacts(matchingName: query)
         }
         
-        try contactStore.enumerateContacts(with: request) { contact, stop in
+        try getContactStore().enumerateContacts(with: request) { contact, stop in
             contacts.append(contact)
             if contacts.count >= limit {
                 stop.pointee = true
@@ -80,7 +89,7 @@ actor ContactsCommands: CommandExecutor {
         ]
         
         do {
-            let contact = try contactStore.unifiedContact(withIdentifier: contactId, keysToFetch: keysToFetch)
+            let contact = try getContactStore().unifiedContact(withIdentifier: contactId, keysToFetch: keysToFetch)
             return AnyCodable(["contact": formatContactDetailed(contact)])
         } catch {
             throw CommandError.notFound
@@ -106,7 +115,7 @@ actor ContactsCommands: CommandExecutor {
         
         let request = CNContactFetchRequest(keysToFetch: keysToFetch)
         
-        try contactStore.enumerateContacts(with: request) { contact, _ in
+        try getContactStore().enumerateContacts(with: request) { contact, _ in
             guard let birthday = contact.birthday else { return }
             
             // Create this year's birthday date
