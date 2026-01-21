@@ -8,7 +8,7 @@
 --extensionacl on-declarations # Set ACL on extension members
 
 # Indentation
---indent 4
+--indent 2
 --indentcase false
 --ifdef no-indent
 --xcodeindentation enabled
