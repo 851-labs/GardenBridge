@@ -8,13 +8,13 @@ struct SettingsView: View {
     var body: some View {
         TabView {
             ConnectionSettingsTab()
-                .environment(connectionState)
+                .environment(self.connectionState)
                 .tabItem {
                     Label("Connection", systemImage: "network")
                 }
 
             PermissionsTab()
-                .environment(permissionManager)
+                .environment(self.permissionManager)
                 .tabItem {
                     Label("Permissions", systemImage: "lock.shield")
                 }
@@ -34,7 +34,7 @@ struct ConnectionSettingsTab: View {
     @Environment(ConnectionState.self) private var connectionState
 
     var body: some View {
-        @Bindable var state = connectionState
+        @Bindable var state = self.connectionState
 
         Form {
             Section {
@@ -48,8 +48,8 @@ struct ConnectionSettingsTab: View {
             } header: {
                 Text("Gateway Connection")
             }
-            statusSection
-            saveSection
+            self.statusSection
+            self.saveSection
         }
         .padding()
     }
@@ -59,14 +59,14 @@ struct ConnectionSettingsTab: View {
             HStack {
                 Text("Status:")
                 Spacer()
-                Text(connectionState.status.displayText)
-                    .foregroundStyle(statusColor)
+                Text(self.connectionState.status.displayText)
+                    .foregroundStyle(self.statusColor)
             }
 
-            if connectionState.status.isConnected {
-                Button("Disconnect", action: disconnect)
+            if self.connectionState.status.isConnected {
+                Button("Disconnect", action: self.disconnect)
             } else {
-                Button("Connect", action: connect)
+                Button("Connect", action: self.connect)
             }
         } header: {
             Text("Connection Status")
@@ -76,18 +76,18 @@ struct ConnectionSettingsTab: View {
     private var saveSection: some View {
         Section {
             Button("Save Settings") {
-                connectionState.saveSettings()
+                self.connectionState.saveSettings()
             }
         }
     }
 
     private var statusColor: Color {
-        switch connectionState.status {
-        case .disconnected: return .gray
-        case .connecting: return .yellow
-        case .connected: return .orange
-        case .paired: return .green
-        case .error: return .red
+        switch self.connectionState.status {
+        case .disconnected: .gray
+        case .connecting: .yellow
+        case .connected: .orange
+        case .paired: .green
+        case .error: .red
         }
     }
 
@@ -117,13 +117,13 @@ struct PermissionsTab: View {
 
     var body: some View {
         Form {
-            systemPermissionsSection
-            privacyPermissionsSection
-            refreshSection
+            self.systemPermissionsSection
+            self.privacyPermissionsSection
+            self.refreshSection
         }
         .formStyle(.grouped)
         .onAppear {
-            permissionManager.refreshAllStatuses()
+            self.permissionManager.refreshAllStatuses()
         }
     }
 
@@ -131,69 +131,63 @@ struct PermissionsTab: View {
         Section {
             PermissionRow(
                 name: "Calendar",
-                status: permissionManager.calendarStatus,
+                status: self.permissionManager.calendarStatus,
                 action: {
-                    performPermissionRequest {
-                        _ = await permissionManager.requestCalendarAccess()
+                    self.performPermissionRequest {
+                        _ = await self.permissionManager.requestCalendarAccess()
                     }
-                }
-            )
+                })
 
             PermissionRow(
                 name: "Reminders",
-                status: permissionManager.remindersStatus,
+                status: self.permissionManager.remindersStatus,
                 action: {
-                    performPermissionRequest {
-                        _ = await permissionManager.requestRemindersAccess()
+                    self.performPermissionRequest {
+                        _ = await self.permissionManager.requestRemindersAccess()
                     }
-                }
-            )
+                })
 
             PermissionRow(
                 name: "Contacts",
-                status: permissionManager.contactsStatus,
+                status: self.permissionManager.contactsStatus,
                 action: {
-                    performPermissionRequest {
-                        _ = await permissionManager.requestContactsAccess()
+                    self.performPermissionRequest {
+                        _ = await self.permissionManager.requestContactsAccess()
                     }
-                }
-            )
+                })
 
             PermissionRow(
                 name: "Location",
-                status: permissionManager.locationStatus,
+                status: self.permissionManager.locationStatus,
                 action: {
-                    permissionManager.requestLocationAccess()
+                    self.permissionManager.requestLocationAccess()
                     Task { @MainActor in
-                        await bringToFront()
+                        await self.bringToFront()
                     }
-                }
-            )
+                })
 
             PermissionRow(
                 name: "Camera",
-                status: permissionManager.cameraStatus,
+                status: self.permissionManager.cameraStatus,
                 action: {
-                    performPermissionRequest {
-                        _ = await permissionManager.requestCameraAccess()
+                    self.performPermissionRequest {
+                        _ = await self.permissionManager.requestCameraAccess()
                     }
-                }
-            )
+                })
 
             PermissionRow(
                 name: "Microphone",
-                status: permissionManager.microphoneStatus,
+                status: self.permissionManager.microphoneStatus,
                 action: {
-                    if permissionManager.microphoneStatus == .denied {
-                        permissionManager.openMicrophoneSettings()
+                    if self.permissionManager.microphoneStatus == .denied {
+                        self.permissionManager.openMicrophoneSettings()
                     } else {
-                        performPermissionRequest {
-                            _ = await permissionManager.requestMicrophoneAccess()
+                        self.performPermissionRequest {
+                            _ = await self.permissionManager.requestMicrophoneAccess()
                         }
                     }
                 },
-                opensSettings: permissionManager.microphoneStatus == .denied
-            )
+                opensSettings: self.permissionManager.microphoneStatus == .denied)
         } header: {
             Text("System Permissions")
         }
@@ -203,31 +197,27 @@ struct PermissionsTab: View {
         Section {
             PermissionRow(
                 name: "Screen Recording",
-                status: permissionManager.screenCaptureStatus,
-                action: { permissionManager.requestScreenCaptureAccess() },
-                opensSettings: permissionManager.screenCaptureStatus != .authorized
-            )
+                status: self.permissionManager.screenCaptureStatus,
+                action: { self.permissionManager.requestScreenCaptureAccess() },
+                opensSettings: self.permissionManager.screenCaptureStatus != .authorized)
 
             PermissionRow(
                 name: "Accessibility",
-                status: permissionManager.accessibilityStatus,
-                action: { permissionManager.requestAccessibilityAccess() },
-                opensSettings: permissionManager.accessibilityStatus != .authorized
-            )
+                status: self.permissionManager.accessibilityStatus,
+                action: { self.permissionManager.requestAccessibilityAccess() },
+                opensSettings: self.permissionManager.accessibilityStatus != .authorized)
 
             PermissionRow(
                 name: "Full Disk Access",
-                status: permissionManager.fullDiskAccessStatus,
-                action: { permissionManager.openFullDiskAccessSettings() },
-                opensSettings: true
-            )
+                status: self.permissionManager.fullDiskAccessStatus,
+                action: { self.permissionManager.openFullDiskAccessSettings() },
+                opensSettings: true)
 
             PermissionRow(
                 name: "Automation",
-                status: permissionManager.automationStatus,
-                action: { permissionManager.openAutomationSettings() },
-                opensSettings: true
-            )
+                status: self.permissionManager.automationStatus,
+                action: { self.permissionManager.openAutomationSettings() },
+                opensSettings: true)
         } header: {
             Text("Privacy & Security Settings")
         } footer: {
@@ -240,21 +230,21 @@ struct PermissionsTab: View {
     private var refreshSection: some View {
         Section {
             Button("Refresh All") {
-                permissionManager.refreshAllStatuses()
+                self.permissionManager.refreshAllStatuses()
             }
         }
     }
 
     @MainActor
     private func bringToFront() async {
-        try? await Task.sleep(for: bringToFrontDelay)
+        try? await Task.sleep(for: self.bringToFrontDelay)
         NSApp.activate(ignoringOtherApps: true)
     }
 
     private func performPermissionRequest(_ action: @escaping @Sendable () async -> Void) {
         Task { @MainActor in
             await action()
-            await bringToFront()
+            await self.bringToFront()
         }
     }
 }
@@ -269,15 +259,15 @@ struct PermissionRow: View {
 
     var body: some View {
         HStack {
-            Text(name)
+            Text(self.name)
 
             Spacer()
 
-            statusBadge
+            self.statusBadge
 
-            if status != .authorized {
-                Button(opensSettings ? "Open Settings" : "Request") {
-                    action()
+            if self.status != .authorized {
+                Button(self.opensSettings ? "Open Settings" : "Request") {
+                    self.action()
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
@@ -288,20 +278,20 @@ struct PermissionRow: View {
     private var statusBadge: some View {
         HStack(spacing: 4) {
             Circle()
-                .fill(statusColor)
+                .fill(self.statusColor)
                 .frame(width: 8, height: 8)
 
-            Text(status.rawValue.replacingOccurrences(of: "_", with: " ").capitalized)
+            Text(self.status.rawValue.replacingOccurrences(of: "_", with: " ").capitalized)
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
     }
 
     private var statusColor: Color {
-        switch status {
-        case .authorized: return .green
-        case .denied, .restricted: return .red
-        case .notDetermined, .notAvailable: return .gray
+        switch self.status {
+        case .authorized: .green
+        case .denied, .restricted: .red
+        case .notDetermined, .notAvailable: .gray
         }
     }
 }
@@ -330,7 +320,9 @@ struct AboutTab: View {
             Divider()
                 .frame(width: 200)
 
-            Text("GardenBridge connects your macOS system to the Clawdbot Gateway, allowing AI assistants to interact with your calendar, contacts, reminders, files, and more.")
+            Text(
+                "GardenBridge connects your macOS system to the Clawdbot Gateway, "
+                    + "allowing AI assistants to interact with your calendar, contacts, reminders, files, and more.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

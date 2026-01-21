@@ -6,37 +6,37 @@ struct MenuBarView: View {
     @Environment(PermissionManager.self) private var permissionManager
 
     private let menuWidth: CGFloat = 280
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            connectionStatusSection
+            self.connectionStatusSection
             Divider()
-            quickActionsSection
+            self.quickActionsSection
             Divider()
-            footerSection
+            self.footerSection
         }
         .padding()
-        .frame(width: menuWidth)
+        .frame(width: self.menuWidth)
     }
-    
+
     // MARK: - Connection Status Section
-    
+
     private var connectionStatusSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                statusIndicator
-                
+                self.statusIndicator
+
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Clawdbot Gateway")
                         .font(.headline)
-                    Text(connectionState.status.displayText)
+                    Text(self.connectionState.status.displayText)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                
+
                 Spacer()
             }
-            
+
             if let error = connectionState.lastError {
                 Text(error)
                     .font(.caption2)
@@ -45,73 +45,73 @@ struct MenuBarView: View {
             }
         }
     }
-    
+
     private var statusIndicator: some View {
         Circle()
-            .fill(statusColor)
+            .fill(self.statusColor)
             .frame(width: 12, height: 12)
             .overlay {
-                if connectionState.status == .connecting {
+                if self.connectionState.status == .connecting {
                     Circle()
-                        .stroke(statusColor.opacity(0.5), lineWidth: 2)
+                        .stroke(self.statusColor.opacity(0.5), lineWidth: 2)
                         .frame(width: 18, height: 18)
                 }
             }
     }
-    
+
     private var statusColor: Color {
-        switch connectionState.status {
+        switch self.connectionState.status {
         case .disconnected:
-            return .gray
+            .gray
         case .connecting:
-            return .yellow
+            .yellow
         case .connected:
-            return .orange
+            .orange
         case .paired:
-            return .green
+            .green
         case .error:
-            return .red
+            .red
         }
     }
-    
+
     // MARK: - Quick Actions Section
-    
+
     private var quickActionsSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            if connectionState.status.isConnected {
-                Button(action: disconnect) {
+            if self.connectionState.status.isConnected {
+                Button(action: self.disconnect) {
                     Label("Disconnect", systemImage: "bolt.slash")
                 }
                 .buttonStyle(.plain)
             } else {
-                Button(action: connect) {
+                Button(action: self.connect) {
                     Label("Connect", systemImage: "bolt")
                 }
                 .buttonStyle(.plain)
             }
-            
-            Button(action: openSettings) {
+
+            Button(action: self.openSettings) {
                 Label("Settings...", systemImage: "gear")
             }
             .buttonStyle(.plain)
-            
-            Button(action: refreshPermissions) {
+
+            Button(action: self.refreshPermissions) {
                 Label("Refresh Permissions", systemImage: "arrow.clockwise")
             }
             .buttonStyle(.plain)
         }
     }
-    
+
     // MARK: - Footer Section
-    
+
     private var footerSection: some View {
         HStack {
             Text("GardenBridge v1.0")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
-            
+
             Spacer()
-            
+
             Button("Quit") {
                 NSApplication.shared.terminate(nil)
             }
@@ -121,9 +121,9 @@ struct MenuBarView: View {
             .keyboardShortcut("q", modifiers: .command)
         }
     }
-    
+
     // MARK: - Actions
-    
+
     private func connect() {
         Task { @MainActor in
             if let appDelegate = NSApp.delegate as? AppDelegate {
@@ -131,7 +131,7 @@ struct MenuBarView: View {
             }
         }
     }
-    
+
     private func disconnect() {
         Task { @MainActor in
             if let appDelegate = NSApp.delegate as? AppDelegate {
@@ -139,14 +139,14 @@ struct MenuBarView: View {
             }
         }
     }
-    
+
     private func openSettings() {
         NSApp.activate(ignoringOtherApps: true)
         NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
     }
-    
+
     private func refreshPermissions() {
-        permissionManager.refreshAllStatuses()
+        self.permissionManager.refreshAllStatuses()
     }
 }
 

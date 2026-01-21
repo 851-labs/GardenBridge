@@ -1,71 +1,73 @@
+import AppKit
+import CoreGraphics
 import Foundation
 @preconcurrency import ScreenCaptureKit
-import CoreGraphics
-import AppKit
 
 /// Handles screen capture commands using ScreenCaptureKit
 actor ScreenCaptureCommands: CommandExecutor {
     private let retinaScale: Int = 2
-    
+
     func execute(command: String, params: [String: AnyCodable]) async throws -> AnyCodable? {
         switch command {
         case "screen.capture":
-            return try await captureScreen(params: params)
+            return try await self.captureScreen(params: params)
         case "screen.list":
-            return try await listDisplays()
+            return try await self.listDisplays()
         default:
             throw CommandError(code: "UNKNOWN_COMMAND", message: "Unknown screen command: \(command)")
         }
     }
-    
+
     // MARK: - Capture Screen
-    
+
     private func captureScreen(params: [String: AnyCodable]) async throws -> AnyCodable {
         // Check permission
         guard CGPreflightScreenCaptureAccess() else {
             CGRequestScreenCaptureAccess()
             throw CommandError(code: "SCREEN_CAPTURE_NOT_AUTHORIZED", message: "Screen capture permission not granted")
         }
-        
+
         let displayId = params["display"]?.intValue ?? Int(CGMainDisplayID())
         let format = params["format"]?.stringValue ?? "png"
         let formatLowercased = format.lowercased()
         let quality = params["quality"]?.doubleValue ?? 0.9
-        
+
         // Get available displays using ScreenCaptureKit
         let content = try await shareableContent()
-        
-        guard let display = content.displays.first(where: { $0.displayID == CGDirectDisplayID(displayId) }) ?? content.displays.first else {
+
+        guard let display = content.displays.first(where: { $0.displayID == CGDirectDisplayID(displayId) }) ?? content
+            .displays.first
+        else {
             throw CommandError(code: "DISPLAY_NOT_FOUND", message: "Display not found")
         }
-        
+
         // Create filter for the display
         let filter = SCContentFilter(display: display, excludingWindows: [])
-        
+
         // Create stream configuration
         let config = SCStreamConfiguration()
-        config.width = display.width * retinaScale
-        config.height = display.height * retinaScale
-        
+        config.width = display.width * self.retinaScale
+        config.height = display.height * self.retinaScale
+
         // Capture screenshot using ScreenCaptureKit
         let image = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
-        
+
         let (data, mimeType) = try encodeImage(image, format: formatLowercased, quality: quality)
-        
+
         return AnyCodable([
             "format": format,
             "mimeType": mimeType,
             "width": image.width,
             "height": image.height,
-            "base64": data.base64EncodedString()
+            "base64": data.base64EncodedString(),
         ])
     }
-    
+
     // MARK: - List Displays
-    
+
     private func listDisplays() async throws -> AnyCodable {
         let content = try await shareableContent()
-        
+
         let displays = content.displays.map { display -> [String: Any] in
             [
                 "id": Int(display.displayID),
@@ -75,15 +77,15 @@ actor ScreenCaptureCommands: CommandExecutor {
                     "x": display.frame.origin.x,
                     "y": display.frame.origin.y,
                     "width": display.frame.size.width,
-                    "height": display.frame.size.height
-                ]
+                    "height": display.frame.size.height,
+                ],
             ]
         }
-        
+
         return AnyCodable([
             "displays": displays,
             "count": displays.count,
-            "mainDisplay": Int(CGMainDisplayID())
+            "mainDisplay": Int(CGMainDisplayID()),
         ])
     }
 
@@ -95,7 +97,8 @@ actor ScreenCaptureCommands: CommandExecutor {
         let nsImage = NSImage(cgImage: image, size: NSSize(width: image.width, height: image.height))
 
         guard let tiffData = nsImage.tiffRepresentation,
-              let bitmap = NSBitmapImageRep(data: tiffData) else {
+              let bitmap = NSBitmapImageRep(data: tiffData)
+        else {
             throw CommandError(code: "CONVERSION_FAILED", message: "Failed to convert image")
         }
 

@@ -3,27 +3,27 @@ import SwiftUI
 @main
 struct GardenBridgeApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    
+
     var body: some Scene {
         Settings {
             SettingsView()
-                .environment(appDelegate.connectionState)
-                .environment(appDelegate.permissionManager)
+                .environment(self.appDelegate.connectionState)
+                .environment(self.appDelegate.permissionManager)
         }
-        
+
         MenuBarExtra {
             MenuBarView()
-                .environment(appDelegate.connectionState)
-                .environment(appDelegate.permissionManager)
+                .environment(self.appDelegate.connectionState)
+                .environment(self.appDelegate.permissionManager)
         } label: {
             Label("GardenBridge", systemImage: "leaf.circle.fill")
         }
         .menuBarExtraStyle(.window)
-        
+
         Window("Welcome to GardenBridge", id: "onboarding") {
             OnboardingView()
-                .environment(appDelegate.connectionState)
-                .environment(appDelegate.permissionManager)
+                .environment(self.appDelegate.connectionState)
+                .environment(self.appDelegate.permissionManager)
         }
         .windowResizability(.contentSize)
         .defaultPosition(.center)

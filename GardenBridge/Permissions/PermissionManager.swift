@@ -1,21 +1,21 @@
-import Foundation
-import Observation
-import EventKit
-import Contacts
-@preconcurrency import CoreLocation
-import AVFoundation
-import ScreenCaptureKit
 import AppKit
 import ApplicationServices
+import AVFoundation
+import Contacts
+@preconcurrency import CoreLocation
+import EventKit
+import Foundation
+import Observation
+import ScreenCaptureKit
 
 /// Permission status for each capability
 enum PermissionStatus: String, Sendable {
     case notDetermined = "not_determined"
-    case authorized = "authorized"
-    case denied = "denied"
-    case restricted = "restricted"
+    case authorized
+    case denied
+    case restricted
     case notAvailable = "not_available"
-    
+
     var isGranted: Bool {
         self == .authorized
     }
@@ -37,17 +37,18 @@ final class PermissionManager: NSObject {
     var accessibilityStatus: PermissionStatus = .notDetermined
     var fullDiskAccessStatus: PermissionStatus = .notDetermined
     var automationStatus: PermissionStatus = .notDetermined
-    
+
     // MARK: - Services
 
     private let eventStore = EKEventStore()
     private var _contactStore: CNContactStore?
     private var contactStore: CNContactStore {
-        if _contactStore == nil {
-            _contactStore = CNContactStore()
+        if self._contactStore == nil {
+            self._contactStore = CNContactStore()
         }
-        return _contactStore!
+        return self._contactStore!
     }
+
     private var locationManager: CLLocationManager?
     private var locationDelegate: LocationAuthorizationDelegate?
 
@@ -60,13 +61,13 @@ final class PermissionManager: NSObject {
     }
 
     private let fullDiskAccessTestPath = "Library/Safari/Bookmarks.plist"
-    
+
     override init() {
         super.init()
-        setupLocationManager()
-        refreshInitialStatuses()
+        self.setupLocationManager()
+        self.refreshInitialStatuses()
     }
-    
+
     private func setupLocationManager() {
         let manager = CLLocationManager()
         let delegate = LocationAuthorizationDelegate { [weak self] in
@@ -75,165 +76,164 @@ final class PermissionManager: NSObject {
             }
         }
         manager.delegate = delegate
-        locationManager = manager
-        locationDelegate = delegate
+        self.locationManager = manager
+        self.locationDelegate = delegate
     }
-    
-    
+
     // MARK: - Status Refresh
-    
+
     func refreshAllStatuses() {
-        refreshCalendarStatus()
-        refreshRemindersStatus()
-        refreshContactsStatus()
-        refreshLocationStatus()
-        refreshCameraStatus()
-        refreshMicrophoneStatus()
-        refreshScreenCaptureStatus()
-        refreshAccessibilityStatus()
-        refreshFullDiskAccessStatus()
-        refreshAutomationStatus()
+        self.refreshCalendarStatus()
+        self.refreshRemindersStatus()
+        self.refreshContactsStatus()
+        self.refreshLocationStatus()
+        self.refreshCameraStatus()
+        self.refreshMicrophoneStatus()
+        self.refreshScreenCaptureStatus()
+        self.refreshAccessibilityStatus()
+        self.refreshFullDiskAccessStatus()
+        self.refreshAutomationStatus()
     }
-    
+
     func refreshCalendarStatus() {
         let status = EKEventStore.authorizationStatus(for: .event)
-        calendarStatus = convertEKAuthStatus(status)
+        self.calendarStatus = self.convertEKAuthStatus(status)
     }
-    
+
     func refreshRemindersStatus() {
         let status = EKEventStore.authorizationStatus(for: .reminder)
-        remindersStatus = convertEKAuthStatus(status)
+        self.remindersStatus = self.convertEKAuthStatus(status)
     }
-    
+
     func refreshContactsStatus() {
         let status = CNContactStore.authorizationStatus(for: .contacts)
-        contactsStatus = convertCNAuthStatus(status)
+        self.contactsStatus = self.convertCNAuthStatus(status)
     }
-    
+
     func refreshLocationStatus() {
-        let status = locationManager?.authorizationStatus ?? .notDetermined
-        locationStatus = convertCLAuthStatus(status)
+        let status = self.locationManager?.authorizationStatus ?? .notDetermined
+        self.locationStatus = self.convertCLAuthStatus(status)
     }
-    
+
     func refreshCameraStatus() {
         let status = AVCaptureDevice.authorizationStatus(for: .video)
-        cameraStatus = convertAVAuthStatus(status)
+        self.cameraStatus = self.convertAVAuthStatus(status)
     }
-    
+
     func refreshMicrophoneStatus() {
         let status = AVCaptureDevice.authorizationStatus(for: .audio)
-        microphoneStatus = convertAVAuthStatus(status)
+        self.microphoneStatus = self.convertAVAuthStatus(status)
     }
-    
+
     func refreshScreenCaptureStatus() {
-        screenCaptureStatus = CGPreflightScreenCaptureAccess() ? .authorized : .notDetermined
+        self.screenCaptureStatus = CGPreflightScreenCaptureAccess() ? .authorized : .notDetermined
     }
-    
+
     func refreshAccessibilityStatus() {
         let trusted = AXIsProcessTrusted()
-        accessibilityStatus = trusted ? .authorized : .denied
+        self.accessibilityStatus = trusted ? .authorized : .denied
     }
-    
+
     func refreshFullDiskAccessStatus() {
-        let testPath = (NSHomeDirectory() as NSString).appendingPathComponent(fullDiskAccessTestPath)
-        fullDiskAccessStatus = FileManager.default.isReadableFile(atPath: testPath) ? .authorized : .notDetermined
+        let testPath = (NSHomeDirectory() as NSString).appendingPathComponent(self.fullDiskAccessTestPath)
+        self.fullDiskAccessStatus = FileManager.default.isReadableFile(atPath: testPath) ? .authorized : .notDetermined
     }
-    
+
     func refreshAutomationStatus() {
         // Automation permission is checked per-app, we'll assume not determined
         // The actual check happens when we try to run an AppleScript
-        automationStatus = .notDetermined
+        self.automationStatus = .notDetermined
     }
-    
+
     // MARK: - Request Permissions
-    
+
     func requestCalendarAccess() async -> Bool {
         do {
             let granted = try await eventStore.requestFullAccessToEvents()
-            refreshCalendarStatus()
+            self.refreshCalendarStatus()
             return granted
         } catch {
             print("Failed to request calendar access: \(error)")
             return false
         }
     }
-    
+
     func requestRemindersAccess() async -> Bool {
         do {
             let granted = try await eventStore.requestFullAccessToReminders()
-            refreshRemindersStatus()
+            self.refreshRemindersStatus()
             return granted
         } catch {
             print("Failed to request reminders access: \(error)")
             return false
         }
     }
-    
+
     func requestContactsAccess() async -> Bool {
         do {
             let granted = try await contactStore.requestAccess(for: .contacts)
-            refreshContactsStatus()
+            self.refreshContactsStatus()
             return granted
         } catch {
             print("Failed to request contacts access: \(error)")
             return false
         }
     }
-    
+
     func requestLocationAccess() {
-        locationManager?.requestWhenInUseAuthorization()
+        self.locationManager?.requestWhenInUseAuthorization()
     }
-    
+
     func requestCameraAccess() async -> Bool {
         let granted = await AVCaptureDevice.requestAccess(for: .video)
-        refreshCameraStatus()
+        self.refreshCameraStatus()
         return granted
     }
-    
+
     func requestMicrophoneAccess() async -> Bool {
         let granted = await AVCaptureDevice.requestAccess(for: .audio)
-        refreshMicrophoneStatus()
+        self.refreshMicrophoneStatus()
         return granted
     }
-    
+
     func requestScreenCaptureAccess() {
         // This opens System Preferences
         CGRequestScreenCaptureAccess()
-        refreshScreenCaptureStatus()
+        self.refreshScreenCaptureStatus()
     }
 
     func requestAccessibilityAccess() {
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
         _ = AXIsProcessTrustedWithOptions(options)
-        refreshAccessibilityStatus()
+        self.refreshAccessibilityStatus()
     }
-    
+
     func openAccessibilitySettings() {
-        openSystemSettings(SettingsURL.accessibility)
+        self.openSystemSettings(SettingsURL.accessibility)
     }
-    
+
     func openFullDiskAccessSettings() {
-        openSystemSettings(SettingsURL.fullDiskAccess)
+        self.openSystemSettings(SettingsURL.fullDiskAccess)
     }
-    
+
     func openAutomationSettings() {
-        openSystemSettings(SettingsURL.automation)
+        self.openSystemSettings(SettingsURL.automation)
     }
-    
+
     func openScreenRecordingSettings() {
-        openSystemSettings(SettingsURL.screenRecording)
+        self.openSystemSettings(SettingsURL.screenRecording)
     }
 
     func openMicrophoneSettings() {
-        openSystemSettings(SettingsURL.microphone)
+        self.openSystemSettings(SettingsURL.microphone)
     }
-    
+
     // MARK: - Get Permissions Dictionary
-    
+
     nonisolated func getPermissionsDictionary() -> [String: Bool] {
         // This needs to be called from main actor context
         // Return a default dictionary for protocol use
-        return [
+        [
             "calendar.read": true,
             "calendar.write": true,
             "contacts.read": true,
@@ -247,30 +247,30 @@ final class PermissionManager: NSObject {
             "screen.capture": true,
             "camera.capture": true,
             "notification.send": true,
-            "shell.execute": true
+            "shell.execute": true,
         ]
     }
-    
+
     // MARK: - Private Helpers
 
     private func refreshInitialStatuses() {
-        refreshCalendarStatus()
-        refreshRemindersStatus()
-        refreshContactsStatus()
-        refreshLocationStatus()
-        refreshCameraStatus()
-        refreshMicrophoneStatus()
-        refreshScreenCaptureStatus()
-        refreshAccessibilityStatus()
-        refreshFullDiskAccessStatus()
-        refreshAutomationStatus()
+        self.refreshCalendarStatus()
+        self.refreshRemindersStatus()
+        self.refreshContactsStatus()
+        self.refreshLocationStatus()
+        self.refreshCameraStatus()
+        self.refreshMicrophoneStatus()
+        self.refreshScreenCaptureStatus()
+        self.refreshAccessibilityStatus()
+        self.refreshFullDiskAccessStatus()
+        self.refreshAutomationStatus()
     }
 
     private func openSystemSettings(_ urlString: String) {
         guard let url = URL(string: urlString) else { return }
         NSWorkspace.shared.open(url)
     }
-    
+
     private func convertEKAuthStatus(_ status: EKAuthorizationStatus) -> PermissionStatus {
         switch status {
         case .notDetermined: return .notDetermined
@@ -281,7 +281,7 @@ final class PermissionManager: NSObject {
         @unknown default: return .notDetermined
         }
     }
-    
+
     private func convertCNAuthStatus(_ status: CNAuthorizationStatus) -> PermissionStatus {
         switch status {
         case .notDetermined: return .notDetermined
@@ -291,7 +291,7 @@ final class PermissionManager: NSObject {
         @unknown default: return .notDetermined
         }
     }
-    
+
     private func convertCLAuthStatus(_ status: CLAuthorizationStatus) -> PermissionStatus {
         switch status {
         case .notDetermined: return .notDetermined
@@ -301,7 +301,7 @@ final class PermissionManager: NSObject {
         @unknown default: return .notDetermined
         }
     }
-    
+
     private func convertAVAuthStatus(_ status: AVAuthorizationStatus) -> PermissionStatus {
         switch status {
         case .notDetermined: return .notDetermined
@@ -324,6 +324,6 @@ private final class LocationAuthorizationDelegate: NSObject, CLLocationManagerDe
     }
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        onAuthorizationChange()
+        self.onAuthorizationChange()
     }
 }

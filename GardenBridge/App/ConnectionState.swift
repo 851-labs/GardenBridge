@@ -8,43 +8,43 @@ enum GatewayConnectionStatus: Equatable, Sendable {
     case connected
     case paired
     case error(String)
-    
+
     var displayText: String {
         switch self {
         case .disconnected:
-            return "Disconnected"
+            "Disconnected"
         case .connecting:
-            return "Connecting..."
+            "Connecting..."
         case .connected:
-            return "Connected (awaiting pairing)"
+            "Connected (awaiting pairing)"
         case .paired:
-            return "Connected & Paired"
-        case .error(let message):
-            return "Error: \(message)"
+            "Connected & Paired"
+        case let .error(message):
+            "Error: \(message)"
         }
     }
-    
+
     var statusColor: String {
         switch self {
         case .disconnected:
-            return "gray"
+            "gray"
         case .connecting:
-            return "yellow"
+            "yellow"
         case .connected:
-            return "orange"
+            "orange"
         case .paired:
-            return "green"
+            "green"
         case .error:
-            return "red"
+            "red"
         }
     }
-    
+
     var isConnected: Bool {
         switch self {
         case .connected, .paired:
-            return true
+            true
         default:
-            return false
+            false
         }
     }
 }
@@ -61,43 +61,43 @@ final class ConnectionState {
     var autoConnect: Bool = true
 
     init() {
-        loadSettings()
+        self.loadSettings()
     }
 
     /// The full WebSocket URL for the gateway
     var gatewayURL: URL? {
-        URL(string: "ws://\(gatewayHost):\(gatewayPort)")
+        URL(string: "ws://\(self.gatewayHost):\(self.gatewayPort)")
     }
-    
+
     func loadSettings() {
         let defaults = UserDefaults.standard
         if let host = defaults.string(forKey: Keys.gatewayHost), !host.isEmpty {
-            gatewayHost = host
+            self.gatewayHost = host
         }
         if defaults.object(forKey: Keys.gatewayPort) != nil {
-            gatewayPort = defaults.integer(forKey: Keys.gatewayPort)
+            self.gatewayPort = defaults.integer(forKey: Keys.gatewayPort)
         }
-        deviceToken = defaults.string(forKey: Keys.deviceToken)
-        autoConnect = defaults.object(forKey: Keys.autoConnect) as? Bool ?? true
+        self.deviceToken = defaults.string(forKey: Keys.deviceToken)
+        self.autoConnect = defaults.object(forKey: Keys.autoConnect) as? Bool ?? true
     }
-    
+
     func saveSettings() {
         let defaults = UserDefaults.standard
-        defaults.set(gatewayHost, forKey: Keys.gatewayHost)
-        defaults.set(gatewayPort, forKey: Keys.gatewayPort)
-        defaults.set(deviceToken, forKey: Keys.deviceToken)
-        defaults.set(autoConnect, forKey: Keys.autoConnect)
+        defaults.set(self.gatewayHost, forKey: Keys.gatewayHost)
+        defaults.set(self.gatewayPort, forKey: Keys.gatewayPort)
+        defaults.set(self.deviceToken, forKey: Keys.deviceToken)
+        defaults.set(self.autoConnect, forKey: Keys.autoConnect)
     }
-    
+
     func setStatus(_ newStatus: GatewayConnectionStatus) {
-        status = newStatus
-        if case .error(let message) = newStatus {
-            lastError = message
+        self.status = newStatus
+        if case let .error(message) = newStatus {
+            self.lastError = message
         }
     }
-    
+
     func clearError() {
-        lastError = nil
+        self.lastError = nil
     }
 
     /// Persisted settings keys

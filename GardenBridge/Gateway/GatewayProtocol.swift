@@ -1,6 +1,7 @@
 import Foundation
 
 // MARK: - Protocol Version
+
 let GATEWAY_PROTOCOL_VERSION = 3
 
 // MARK: - Message Types
@@ -22,7 +23,7 @@ struct GatewayRequest: Codable, Sendable {
     let id: String
     let method: String
     let params: [String: AnyCodable]?
-    
+
     init(type: String = "req", id: String = UUID().uuidString, method: String, params: [String: AnyCodable]? = nil) {
         self.type = type
         self.id = id
@@ -70,7 +71,7 @@ struct GatewayInvokeResponse: Codable, Sendable {
     let ok: Bool
     let payload: AnyCodable?
     let error: GatewayError?
-    
+
     init(type: String = "invoke-res", id: String, ok: Bool, payload: AnyCodable? = nil, error: GatewayError? = nil) {
         self.type = type
         self.id = id
@@ -78,11 +79,11 @@ struct GatewayInvokeResponse: Codable, Sendable {
         self.payload = payload
         self.error = error
     }
-    
+
     static func success(id: String, payload: AnyCodable? = nil) -> GatewayInvokeResponse {
         GatewayInvokeResponse(id: id, ok: true, payload: payload)
     }
-    
+
     static func failure(id: String, code: String, message: String) -> GatewayInvokeResponse {
         GatewayInvokeResponse(id: id, ok: false, error: GatewayError(code: code, message: message))
     }
@@ -159,37 +160,37 @@ struct ConnectChallengePayload: Codable, Sendable {
 /// Type-erased Codable wrapper for dynamic JSON values
 struct AnyCodable: Codable, Hashable, @unchecked Sendable {
     nonisolated(unsafe) let value: Any
-    
+
     init(_ value: Any) {
         self.value = value
     }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
-        
+
         if container.decodeNil() {
-            value = NSNull()
+            self.value = NSNull()
         } else if let bool = try? container.decode(Bool.self) {
-            value = bool
+            self.value = bool
         } else if let int = try? container.decode(Int.self) {
-            value = int
+            self.value = int
         } else if let double = try? container.decode(Double.self) {
-            value = double
+            self.value = double
         } else if let string = try? container.decode(String.self) {
-            value = string
+            self.value = string
         } else if let array = try? container.decode([AnyCodable].self) {
-            value = array.map { $0.value }
+            self.value = array.map(\.value)
         } else if let dictionary = try? container.decode([String: AnyCodable].self) {
-            value = dictionary.mapValues { $0.value }
+            self.value = dictionary.mapValues { $0.value }
         } else {
             throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unsupported type")
         }
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
-        
-        switch value {
+
+        switch self.value {
         case is NSNull:
             try container.encodeNil()
         case let bool as Bool:
@@ -207,24 +208,26 @@ struct AnyCodable: Codable, Hashable, @unchecked Sendable {
         case let dictionary as [String: Any]:
             try container.encode(dictionary.mapValues { AnyCodable($0) })
         default:
-            throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: container.codingPath, debugDescription: "Unsupported type"))
+            throw EncodingError.invalidValue(
+                self.value,
+                EncodingError.Context(codingPath: container.codingPath, debugDescription: "Unsupported type"))
         }
     }
-    
+
     static func == (lhs: AnyCodable, rhs: AnyCodable) -> Bool {
         // Simple equality check for common types
         switch (lhs.value, rhs.value) {
-        case (let l as Bool, let r as Bool): return l == r
-        case (let l as Int, let r as Int): return l == r
-        case (let l as Double, let r as Double): return l == r
-        case (let l as String, let r as String): return l == r
-        case (is NSNull, is NSNull): return true
-        default: return false
+        case let (l as Bool, r as Bool): l == r
+        case let (l as Int, r as Int): l == r
+        case let (l as Double, r as Double): l == r
+        case let (l as String, r as String): l == r
+        case (is NSNull, is NSNull): true
+        default: false
         }
     }
-    
+
     func hash(into hasher: inout Hasher) {
-        switch value {
+        switch self.value {
         case let bool as Bool: hasher.combine(bool)
         case let int as Int: hasher.combine(int)
         case let double as Double: hasher.combine(double)
@@ -232,31 +235,31 @@ struct AnyCodable: Codable, Hashable, @unchecked Sendable {
         default: hasher.combine(0)
         }
     }
-    
+
     // MARK: - Convenience accessors
-    
+
     var stringValue: String? {
-        value as? String
+        self.value as? String
     }
-    
+
     var intValue: Int? {
-        value as? Int
+        self.value as? Int
     }
-    
+
     var doubleValue: Double? {
-        value as? Double
+        self.value as? Double
     }
-    
+
     var boolValue: Bool? {
-        value as? Bool
+        self.value as? Bool
     }
-    
+
     var arrayValue: [Any]? {
-        value as? [Any]
+        self.value as? [Any]
     }
-    
+
     var dictionaryValue: [String: Any]? {
-        value as? [String: Any]
+        self.value as? [String: Any]
     }
 }
 
@@ -285,25 +288,25 @@ enum NodeCommand: String, CaseIterable, Sendable {
     case calendarUpdate = "calendar.update"
     case calendarDelete = "calendar.delete"
     case calendarGetCalendars = "calendar.getCalendars"
-    
+
     // Contacts
     case contactsSearch = "contacts.search"
     case contactsGet = "contacts.get"
     case contactsBirthdays = "contacts.birthdays"
-    
+
     // Reminders
     case remindersList = "reminders.list"
     case remindersCreate = "reminders.create"
     case remindersComplete = "reminders.complete"
     case remindersDelete = "reminders.delete"
     case remindersGetLists = "reminders.getLists"
-    
+
     // Location
     case locationGet = "location.get"
-    
+
     // AppleScript
     case applescriptExecute = "applescript.execute"
-    
+
     // FileSystem
     case fileRead = "file.read"
     case fileWrite = "file.write"
@@ -311,24 +314,24 @@ enum NodeCommand: String, CaseIterable, Sendable {
     case fileExists = "file.exists"
     case fileDelete = "file.delete"
     case fileInfo = "file.info"
-    
+
     // Accessibility
     case accessibilityClick = "accessibility.click"
     case accessibilityType = "accessibility.type"
     case accessibilityGetElement = "accessibility.getElement"
     case accessibilityGetWindows = "accessibility.getWindows"
-    
+
     // Screen
     case screenCapture = "screen.capture"
     case screenList = "screen.list"
-    
+
     // Camera
     case cameraSnap = "camera.snap"
     case cameraList = "camera.list"
-    
+
     // Notifications
     case notificationSend = "notification.send"
-    
+
     // Shell
     case shellExecute = "shell.execute"
     case shellWhich = "shell.which"

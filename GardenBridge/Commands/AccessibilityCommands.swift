@@ -1,86 +1,97 @@
-import Foundation
 import AppKit
 import ApplicationServices
+import Foundation
 
 /// Handles accessibility-related commands using Accessibility APIs
 actor AccessibilityCommands: CommandExecutor {
     func execute(command: String, params: [String: AnyCodable]) async throws -> AnyCodable? {
         // Check accessibility permission first
         guard AXIsProcessTrusted() else {
-            throw CommandError(code: "ACCESSIBILITY_NOT_TRUSTED", message: "Accessibility permission not granted. Please enable it in System Preferences > Security & Privacy > Privacy > Accessibility")
+            let message = "Accessibility permission not granted. "
+                + "Please enable it in System Preferences > Security & Privacy > Privacy > Accessibility"
+            throw CommandError(code: "ACCESSIBILITY_NOT_TRUSTED", message: message)
         }
-        
+
         switch command {
         case "accessibility.click":
-            return try await clickElement(params: params)
+            return try await self.clickElement(params: params)
         case "accessibility.type":
-            return try await typeText(params: params)
+            return try await self.typeText(params: params)
         case "accessibility.getElement":
-            return try await getElement(params: params)
+            return try await self.getElement(params: params)
         case "accessibility.getWindows":
-            return try await getWindows(params: params)
+            return try await self.getWindows(params: params)
         default:
             throw CommandError(code: "UNKNOWN_COMMAND", message: "Unknown accessibility command: \(command)")
         }
     }
-    
+
     // MARK: - Click Element
-    
+
     private func clickElement(params: [String: AnyCodable]) async throws -> AnyCodable {
         // Either click at coordinates or click a specific element
         if let x = params["x"]?.doubleValue,
-           let y = params["y"]?.doubleValue {
-            return try await clickAtPoint(x: x, y: y, params: params)
+           let y = params["y"]?.doubleValue
+        {
+            return try await self.clickAtPoint(x: x, y: y, params: params)
         }
-        
+
         throw CommandError.invalidParam("x and y coordinates are required")
     }
-    
+
     private func clickAtPoint(x: Double, y: Double, params: [String: AnyCodable]) async throws -> AnyCodable {
         let point = CGPoint(x: x, y: y)
         let clickType = params["clickType"]?.stringValue ?? "left"
         let clickCount = params["clickCount"]?.intValue ?? 1
-        
-        let (mouseButton, mouseDown, mouseUp) = mouseEventTypes(for: clickType)
-        
+
+        let (mouseButton, mouseDown, mouseUp) = self.mouseEventTypes(for: clickType)
+
         for _ in 0..<clickCount {
-            let downEvent = CGEvent(mouseEventSource: nil, mouseType: mouseDown, mouseCursorPosition: point, mouseButton: mouseButton)
-            let upEvent = CGEvent(mouseEventSource: nil, mouseType: mouseUp, mouseCursorPosition: point, mouseButton: mouseButton)
-            
+            let downEvent = CGEvent(
+                mouseEventSource: nil,
+                mouseType: mouseDown,
+                mouseCursorPosition: point,
+                mouseButton: mouseButton)
+            let upEvent = CGEvent(
+                mouseEventSource: nil,
+                mouseType: mouseUp,
+                mouseCursorPosition: point,
+                mouseButton: mouseButton)
+
             downEvent?.post(tap: .cghidEventTap)
             upEvent?.post(tap: .cghidEventTap)
         }
-        
+
         return AnyCodable([
             "success": true,
             "x": x,
             "y": y,
             "clickType": clickType,
-            "clickCount": clickCount
+            "clickCount": clickCount,
         ])
     }
-    
+
     // MARK: - Type Text
-    
+
     private func typeText(params: [String: AnyCodable]) async throws -> AnyCodable {
         guard let text = params["text"]?.stringValue else {
             throw CommandError.invalidParam("text")
         }
-        
+
         let delay = params["delay"]?.intValue ?? 0
-        
+
         for character in text {
             // Create key event for character
-            let keyCode = keyCodeForCharacter(character)
-            
+            let keyCode = self.keyCodeForCharacter(character)
+
             if let code = keyCode {
                 let keyDown = CGEvent(keyboardEventSource: nil, virtualKey: code.keyCode, keyDown: true)
                 let keyUp = CGEvent(keyboardEventSource: nil, virtualKey: code.keyCode, keyDown: false)
-                
+
                 if code.shift {
                     keyDown?.flags = .maskShift
                 }
-                
+
                 keyDown?.post(tap: .cghidEventTap)
                 keyUp?.post(tap: .cghidEventTap)
             } else {
@@ -90,161 +101,161 @@ actor AccessibilityCommands: CommandExecutor {
                     var utf16 = Array(String(character).utf16)
                     event.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: &utf16)
                     event.post(tap: .cghidEventTap)
-                    
+
                     let upEvent = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: false)
                     upEvent?.post(tap: .cghidEventTap)
                 }
             }
-            
+
             if delay > 0 {
                 try? await Task.sleep(for: .milliseconds(delay))
             }
         }
-        
+
         return AnyCodable([
             "success": true,
             "text": text,
-            "length": text.count
+            "length": text.count,
         ])
     }
-    
+
     // MARK: - Get Element
-    
+
     private func getElement(params: [String: AnyCodable]) async throws -> AnyCodable {
         guard let x = params["x"]?.doubleValue,
-              let y = params["y"]?.doubleValue else {
+              let y = params["y"]?.doubleValue
+        else {
             throw CommandError.invalidParam("x and y coordinates are required")
         }
-        
+
         let point = CGPoint(x: x, y: y)
-        
+
         var elementRef: AXUIElement?
         let systemWide = AXUIElementCreateSystemWide()
         let error = AXUIElementCopyElementAtPosition(systemWide, Float(point.x), Float(point.y), &elementRef)
-        
+
         guard error == .success, let element = elementRef else {
             return AnyCodable(["element": nil as String?])
         }
-        
-        let info = getElementInfo(element)
-        
+
+        let info = self.getElementInfo(element)
+
         return AnyCodable(["element": info])
     }
-    
+
     // MARK: - Get Windows
-    
+
     private func getWindows(params: [String: AnyCodable]) async throws -> AnyCodable {
         let appName = params["app"]?.stringValue
-        
+
         var windows: [[String: Any]] = []
-        
-        let runningApps: [NSRunningApplication]
-        if let appName = appName {
-            runningApps = NSWorkspace.shared.runningApplications.filter { $0.localizedName == appName }
+
+        let runningApps: [NSRunningApplication] = if let appName {
+            NSWorkspace.shared.runningApplications.filter { $0.localizedName == appName }
         } else {
-            runningApps = NSWorkspace.shared.runningApplications.filter { $0.activationPolicy == .regular }
+            NSWorkspace.shared.runningApplications.filter { $0.activationPolicy == .regular }
         }
-        
+
         for app in runningApps {
             let appElement = AXUIElementCreateApplication(app.processIdentifier)
-            
+
             var windowsRef: CFTypeRef?
             AXUIElementCopyAttributeValue(appElement, kAXWindowsAttribute as CFString, &windowsRef)
-            
+
             if let windowArray = windowsRef as? [AXUIElement] {
                 for window in windowArray {
                     var windowInfo: [String: Any] = [
                         "app": app.localizedName ?? "",
-                        "pid": app.processIdentifier
+                        "pid": app.processIdentifier,
                     ]
-                    
+
                     // Get window title
                     var titleRef: CFTypeRef?
                     AXUIElementCopyAttributeValue(window, kAXTitleAttribute as CFString, &titleRef)
                     if let title = titleRef as? String {
                         windowInfo["title"] = title
                     }
-                    
+
                     // Get window position
                     var positionRef: CFTypeRef?
                     AXUIElementCopyAttributeValue(window, kAXPositionAttribute as CFString, &positionRef)
-                    if let positionValue = positionRef {
+                    if let positionValue = positionRef as? AXValue {
                         var point = CGPoint.zero
-                        AXValueGetValue(positionValue as! AXValue, .cgPoint, &point)
+                        AXValueGetValue(positionValue, .cgPoint, &point)
                         windowInfo["x"] = point.x
                         windowInfo["y"] = point.y
                     }
-                    
+
                     // Get window size
                     var sizeRef: CFTypeRef?
                     AXUIElementCopyAttributeValue(window, kAXSizeAttribute as CFString, &sizeRef)
-                    if let sizeValue = sizeRef {
+                    if let sizeValue = sizeRef as? AXValue {
                         var size = CGSize.zero
-                        AXValueGetValue(sizeValue as! AXValue, .cgSize, &size)
+                        AXValueGetValue(sizeValue, .cgSize, &size)
                         windowInfo["width"] = size.width
                         windowInfo["height"] = size.height
                     }
-                    
+
                     windows.append(windowInfo)
                 }
             }
         }
-        
+
         return AnyCodable(["windows": windows, "count": windows.count])
     }
-    
+
     // MARK: - Helpers
-    
+
     private func getElementInfo(_ element: AXUIElement) -> [String: Any] {
         var info: [String: Any] = [:]
-        
+
         // Get role
         var roleRef: CFTypeRef?
         AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &roleRef)
         if let role = roleRef as? String {
             info["role"] = role
         }
-        
+
         // Get title
         var titleRef: CFTypeRef?
         AXUIElementCopyAttributeValue(element, kAXTitleAttribute as CFString, &titleRef)
         if let title = titleRef as? String {
             info["title"] = title
         }
-        
+
         // Get value
         var valueRef: CFTypeRef?
         AXUIElementCopyAttributeValue(element, kAXValueAttribute as CFString, &valueRef)
         if let value = valueRef as? String {
             info["value"] = value
         }
-        
+
         // Get description
         var descRef: CFTypeRef?
         AXUIElementCopyAttributeValue(element, kAXDescriptionAttribute as CFString, &descRef)
         if let desc = descRef as? String {
             info["description"] = desc
         }
-        
+
         return info
     }
 
     private func mouseEventTypes(for clickType: String) -> (CGMouseButton, CGEventType, CGEventType) {
         switch clickType {
         case "right":
-            return (.right, .rightMouseDown, .rightMouseUp)
+            (.right, .rightMouseDown, .rightMouseUp)
         case "middle":
-            return (.center, .otherMouseDown, .otherMouseUp)
+            (.center, .otherMouseDown, .otherMouseUp)
         default:
-            return (.left, .leftMouseDown, .leftMouseUp)
+            (.left, .leftMouseDown, .leftMouseUp)
         }
     }
-    
+
     private struct KeyCodeInfo {
         let keyCode: CGKeyCode
         let shift: Bool
     }
-    
+
     private func keyCodeForCharacter(_ char: Character) -> KeyCodeInfo? {
         // Basic key code mapping for common characters
         let keyMap: [Character: (CGKeyCode, Bool)] = [
@@ -297,13 +308,12 @@ actor AccessibilityCommands: CommandExecutor {
             ",": (43, false), "<": (43, true),
             ".": (47, false), ">": (47, true),
             "/": (44, false), "?": (44, true),
-            "`": (50, false), "~": (50, true)
+            "`": (50, false), "~": (50, true),
         ]
-        
+
         if let (keyCode, shift) = keyMap[char] {
             return KeyCodeInfo(keyCode: keyCode, shift: shift)
         }
         return nil
     }
 }
-

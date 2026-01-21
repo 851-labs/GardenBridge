@@ -9,29 +9,29 @@ struct OnboardingView: View {
     private let totalSteps = 4
 
     @State private var currentStep = 0
-    
+
     var body: some View {
         VStack(spacing: 0) {
             // Progress indicator
-            ProgressView(value: Double(currentStep + 1), total: Double(totalSteps))
+            ProgressView(value: Double(self.currentStep + 1), total: Double(self.totalSteps))
                 .padding(.horizontal)
                 .padding(.top)
-            
-            stepContent
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            self.stepContent
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(width: 500, height: 450)
     }
 
     @ViewBuilder
     private var stepContent: some View {
-        switch currentStep {
+        switch self.currentStep {
         case 0:
             WelcomeStep(onNext: nextStep)
         case 1:
-            PermissionsStep(permissionManager: permissionManager, onNext: nextStep, onBack: previousStep)
+            PermissionsStep(permissionManager: self.permissionManager, onNext: nextStep, onBack: previousStep)
         case 2:
-            ConnectionStep(connectionState: connectionState, onNext: nextStep, onBack: previousStep)
+            ConnectionStep(connectionState: self.connectionState, onNext: nextStep, onBack: previousStep)
         case 3:
             CompleteStep(onFinish: completeOnboarding)
         default:
@@ -42,28 +42,28 @@ struct OnboardingView: View {
 
 // MARK: - Actions
 
-private extension OnboardingView {
-    func nextStep() {
+extension OnboardingView {
+    private func nextStep() {
         withAnimation(.easeInOut(duration: 0.2)) {
-            if currentStep < totalSteps - 1 {
-                currentStep += 1
+            if self.currentStep < self.totalSteps - 1 {
+                self.currentStep += 1
             }
         }
     }
 
-    func previousStep() {
+    private func previousStep() {
         withAnimation(.easeInOut(duration: 0.2)) {
-            if currentStep > 0 {
-                currentStep -= 1
+            if self.currentStep > 0 {
+                self.currentStep -= 1
             }
         }
     }
 
-    func completeOnboarding() {
+    private func completeOnboarding() {
         if let appDelegate = NSApp.delegate as? AppDelegate {
             appDelegate.completeOnboarding()
         }
-        dismissWindow(id: "onboarding")
+        self.dismissWindow(id: "onboarding")
     }
 }
 
@@ -71,25 +71,25 @@ private extension OnboardingView {
 
 struct WelcomeStep: View {
     let onNext: () -> Void
-    
+
     var body: some View {
         VStack(spacing: 24) {
             Spacer()
-            
+
             Image(systemName: "leaf.circle.fill")
                 .font(.system(size: 80))
                 .foregroundStyle(.green)
-            
+
             Text("Welcome to GardenBridge")
                 .font(.largeTitle)
                 .fontWeight(.bold)
-            
+
             Text("GardenBridge connects your Mac to the Clawdbot Gateway, enabling AI assistants to help you with:")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 350)
-            
+
             VStack(alignment: .leading, spacing: 12) {
                 FeatureRow(icon: "calendar", text: "Calendar & Reminders")
                 FeatureRow(icon: "person.2", text: "Contacts")
@@ -99,15 +99,15 @@ struct WelcomeStep: View {
             }
             .padding()
             .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
-            
+
             Spacer()
-            
+
             Button("Get Started") {
-                onNext()
+                self.onNext()
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
-            
+
             Spacer()
                 .frame(height: 20)
         }
@@ -118,13 +118,13 @@ struct WelcomeStep: View {
 struct FeatureRow: View {
     let icon: String
     let text: String
-    
+
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: icon)
+            Image(systemName: self.icon)
                 .frame(width: 24)
                 .foregroundStyle(.green)
-            Text(text)
+            Text(self.text)
                 .font(.subheadline)
         }
     }
@@ -136,85 +136,82 @@ struct PermissionsStep: View {
     let permissionManager: PermissionManager
     let onNext: () -> Void
     let onBack: () -> Void
-    
+
     var body: some View {
         VStack(spacing: 20) {
             Spacer()
-            
+
             Image(systemName: "lock.shield")
                 .font(.system(size: 60))
                 .foregroundStyle(.blue)
-            
+
             Text("Grant Permissions")
                 .font(.title)
                 .fontWeight(.bold)
-            
-            Text("GardenBridge needs certain permissions to help AI assistants interact with your Mac. You can grant permissions now or later in Settings.")
+
+            Text(
+                "GardenBridge needs certain permissions to help AI assistants interact with your Mac. "
+                    + "You can grant permissions now or later in Settings.")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 400)
-            
+
             ScrollView {
                 VStack(spacing: 8) {
                     OnboardingPermissionRow(
                         name: "Calendar",
                         description: "Read and create calendar events",
-                        status: permissionManager.calendarStatus,
-                        action: { Task { await permissionManager.requestCalendarAccess() } }
-                    )
-                    
+                        status: self.permissionManager.calendarStatus,
+                        action: { Task { await self.permissionManager.requestCalendarAccess() } })
+
                     OnboardingPermissionRow(
                         name: "Contacts",
                         description: "Look up contact information",
-                        status: permissionManager.contactsStatus,
-                        action: { Task { await permissionManager.requestContactsAccess() } }
-                    )
-                    
+                        status: self.permissionManager.contactsStatus,
+                        action: { Task { await self.permissionManager.requestContactsAccess() } })
+
                     OnboardingPermissionRow(
                         name: "Reminders",
                         description: "Read and create reminders",
-                        status: permissionManager.remindersStatus,
-                        action: { Task { await permissionManager.requestRemindersAccess() } }
-                    )
-                    
+                        status: self.permissionManager.remindersStatus,
+                        action: { Task { await self.permissionManager.requestRemindersAccess() } })
+
                     OnboardingPermissionRow(
                         name: "Accessibility",
                         description: "Control UI elements",
-                        status: permissionManager.accessibilityStatus,
-                        action: { permissionManager.openAccessibilitySettings() },
-                        opensSettings: true
-                    )
-                    
+                        status: self.permissionManager.accessibilityStatus,
+                        action: { self.permissionManager.openAccessibilitySettings() },
+                        opensSettings: true)
+
                     OnboardingPermissionRow(
                         name: "Screen Recording",
                         description: "Capture screen content",
-                        status: permissionManager.screenCaptureStatus,
-                        action: { permissionManager.requestScreenCaptureAccess() },
-                        opensSettings: true
-                    )
+                        status: self.permissionManager.screenCaptureStatus,
+                        action: { self.permissionManager.requestScreenCaptureAccess() },
+                        opensSettings: true)
                 }
                 .padding(.horizontal)
             }
             .frame(maxHeight: 200)
-            
+
             Spacer()
-            
+
             HStack {
                 Button("Back") {
-                    onBack()
+                    self.onBack()
                 }
                 .buttonStyle(.bordered)
-                
+
                 Spacer()
-                
+
                 Button("Continue") {
-                    onNext()
+                    self.onNext()
                 }
                 .buttonStyle(.borderedProminent)
             }
             .padding(.horizontal, 40)
-            
+
             Spacer()
                 .frame(height: 20)
         }
@@ -228,26 +225,26 @@ struct OnboardingPermissionRow: View {
     let status: PermissionStatus
     let action: () -> Void
     var opensSettings: Bool = false
-    
+
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text(name)
+                Text(self.name)
                     .font(.subheadline)
                     .fontWeight(.medium)
-                Text(description)
+                Text(self.description)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            
+
             Spacer()
-            
-            if status == .authorized {
+
+            if self.status == .authorized {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(.green)
             } else {
-                Button(opensSettings ? "Open Settings" : "Grant") {
-                    action()
+                Button(self.opensSettings ? "Open Settings" : "Grant") {
+                    self.action()
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
@@ -265,27 +262,29 @@ struct ConnectionStep: View {
     let connectionState: ConnectionState
     let onNext: () -> Void
     let onBack: () -> Void
-    
+
     var body: some View {
-        @Bindable var state = connectionState
-        
+        @Bindable var state = self.connectionState
+
         VStack(spacing: 20) {
             Spacer()
-            
+
             Image(systemName: "network")
                 .font(.system(size: 60))
                 .foregroundStyle(.purple)
-            
+
             Text("Connect to Gateway")
                 .font(.title)
                 .fontWeight(.bold)
-            
-            Text("Configure the connection to your Clawdbot Gateway. The default settings work for a local Gateway installation.")
+
+            Text(
+                "Configure the connection to your Clawdbot Gateway. "
+                    + "The default settings work for a local Gateway installation.")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 400)
-            
+
             VStack(spacing: 16) {
                 HStack {
                     Text("Host:")
@@ -294,7 +293,7 @@ struct ConnectionStep: View {
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 200)
                 }
-                
+
                 HStack {
                     Text("Port:")
                         .frame(width: 60, alignment: .trailing)
@@ -302,30 +301,30 @@ struct ConnectionStep: View {
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 200)
                 }
-                
+
                 Toggle("Auto-connect on launch", isOn: $state.autoConnect)
             }
             .padding()
             .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
-            
+
             Spacer()
-            
+
             HStack {
                 Button("Back") {
-                    onBack()
+                    self.onBack()
                 }
                 .buttonStyle(.bordered)
-                
+
                 Spacer()
-                
+
                 Button("Continue") {
-                    connectionState.saveSettings()
-                    onNext()
+                    self.connectionState.saveSettings()
+                    self.onNext()
                 }
                 .buttonStyle(.borderedProminent)
             }
             .padding(.horizontal, 40)
-            
+
             Spacer()
                 .frame(height: 20)
         }
@@ -337,25 +336,27 @@ struct ConnectionStep: View {
 
 struct CompleteStep: View {
     let onFinish: () -> Void
-    
+
     var body: some View {
         VStack(spacing: 24) {
             Spacer()
-            
+
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 80))
                 .foregroundStyle(.green)
-            
+
             Text("You're All Set!")
                 .font(.largeTitle)
                 .fontWeight(.bold)
-            
-            Text("GardenBridge is ready to connect to the Clawdbot Gateway. Look for the leaf icon in your menu bar to manage your connection.")
+
+            Text(
+                "GardenBridge is ready to connect to the Clawdbot Gateway. "
+                    + "Look for the leaf icon in your menu bar to manage your connection.")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 350)
-            
+
             VStack(alignment: .leading, spacing: 12) {
                 TipRow(icon: "menubar.rectangle", text: "Click the menu bar icon to see connection status")
                 TipRow(icon: "gear", text: "Use Settings to manage permissions")
@@ -363,15 +364,15 @@ struct CompleteStep: View {
             }
             .padding()
             .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
-            
+
             Spacer()
-            
+
             Button("Finish Setup") {
-                onFinish()
+                self.onFinish()
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
-            
+
             Spacer()
                 .frame(height: 20)
         }
@@ -382,13 +383,13 @@ struct CompleteStep: View {
 struct TipRow: View {
     let icon: String
     let text: String
-    
+
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: icon)
+            Image(systemName: self.icon)
                 .frame(width: 24)
                 .foregroundStyle(.blue)
-            Text(text)
+            Text(self.text)
                 .font(.subheadline)
         }
     }
