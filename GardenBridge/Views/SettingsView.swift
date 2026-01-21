@@ -204,15 +204,15 @@ struct PermissionsTab: View {
             PermissionRow(
                 name: "Screen Recording",
                 status: permissionManager.screenCaptureStatus,
-                action: { permissionManager.openScreenRecordingSettings() },
-                opensSettings: true
+                action: { permissionManager.requestScreenCaptureAccess() },
+                opensSettings: permissionManager.screenCaptureStatus != .authorized
             )
 
             PermissionRow(
                 name: "Accessibility",
                 status: permissionManager.accessibilityStatus,
-                action: { permissionManager.openAccessibilitySettings() },
-                opensSettings: true
+                action: { permissionManager.requestAccessibilityAccess() },
+                opensSettings: permissionManager.accessibilityStatus != .authorized
             )
 
             PermissionRow(

@@ -6,6 +6,7 @@ import Contacts
 import AVFoundation
 import ScreenCaptureKit
 import AppKit
+import ApplicationServices
 
 /// Permission status for each capability
 enum PermissionStatus: String, Sendable {
@@ -130,7 +131,7 @@ final class PermissionManager: NSObject {
     
     func refreshAccessibilityStatus() {
         let trusted = AXIsProcessTrusted()
-        accessibilityStatus = trusted ? .authorized : .notDetermined
+        accessibilityStatus = trusted ? .authorized : .denied
     }
     
     func refreshFullDiskAccessStatus() {
@@ -199,6 +200,12 @@ final class PermissionManager: NSObject {
         // This opens System Preferences
         CGRequestScreenCaptureAccess()
         refreshScreenCaptureStatus()
+    }
+
+    func requestAccessibilityAccess() {
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+        _ = AXIsProcessTrustedWithOptions(options)
+        refreshAccessibilityStatus()
     }
     
     func openAccessibilitySettings() {
