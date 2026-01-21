@@ -38,7 +38,13 @@ final class PermissionManager: NSObject, CLLocationManagerDelegate {
     
     // Services
     private let eventStore = EKEventStore()
-    private let contactStore = CNContactStore()
+    private var _contactStore: CNContactStore?
+    private var contactStore: CNContactStore {
+        if _contactStore == nil {
+            _contactStore = CNContactStore()
+        }
+        return _contactStore!
+    }
     private var locationManager: CLLocationManager?
     
     override init() {
