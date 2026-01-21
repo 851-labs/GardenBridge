@@ -112,6 +112,7 @@ struct PermissionsTab: View {
                     action: {
                         Task {
                             _ = await permissionManager.requestCalendarAccess()
+                            bringToFront()
                         }
                     }
                 )
@@ -122,6 +123,7 @@ struct PermissionsTab: View {
                     action: {
                         Task {
                             _ = await permissionManager.requestRemindersAccess()
+                            bringToFront()
                         }
                     }
                 )
@@ -132,6 +134,7 @@ struct PermissionsTab: View {
                     action: {
                         Task {
                             _ = await permissionManager.requestContactsAccess()
+                            bringToFront()
                         }
                     }
                 )
@@ -145,6 +148,7 @@ struct PermissionsTab: View {
                         Task {
                             try? await Task.sleep(for: .seconds(1))
                             permissionManager.refreshLocationStatus()
+                            bringToFront()
                         }
                     }
                 )
@@ -155,6 +159,7 @@ struct PermissionsTab: View {
                     action: {
                         Task {
                             _ = await permissionManager.requestCameraAccess()
+                            bringToFront()
                         }
                     }
                 )
@@ -165,6 +170,7 @@ struct PermissionsTab: View {
                     action: {
                         Task {
                             _ = await permissionManager.requestMicrophoneAccess()
+                            bringToFront()
                         }
                     }
                 )
@@ -218,6 +224,10 @@ struct PermissionsTab: View {
         .onAppear {
             permissionManager.refreshAllStatuses()
         }
+    }
+    
+    private func bringToFront() {
+        NSApp.activate(ignoringOtherApps: true)
     }
 }
 
