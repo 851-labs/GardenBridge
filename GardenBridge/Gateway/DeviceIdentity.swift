@@ -1,12 +1,17 @@
 import Foundation
 import CryptoKit
-import Security
 
 /// Manages device identity and cryptographic operations for gateway pairing
+/// Uses file-based storage in Application Support to avoid Keychain permission prompts
 actor DeviceIdentity {
-    private let keyTag = "com.851labs.GardenBridge.deviceKey"
     private var privateKey: P256.Signing.PrivateKey?
     private var deviceId: String?
+    
+    private var keyFileURL: URL {
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let appDir = appSupport.appendingPathComponent("GardenBridge", isDirectory: true)
+        return appDir.appendingPathComponent(".device_key")
+    }
     
     init() {
         Task {
@@ -81,19 +86,19 @@ actor DeviceIdentity {
     // MARK: - Private Methods
     
     private func loadOrCreateIdentity() async {
-        // Try to load existing key from keychain
-        if let existingKey = loadKeyFromKeychain() {
+        // Try to load existing key from file
+        if let existingKey = loadKeyFromFile() {
             privateKey = existingKey
             deviceId = generateDeviceId(from: existingKey.publicKey)
             return
         }
         
-        // Create new key and save to keychain
+        // Create new key and save to file
         let newKey = P256.Signing.PrivateKey()
         privateKey = newKey
         deviceId = generateDeviceId(from: newKey.publicKey)
         
-        saveKeyToKeychain(newKey)
+        saveKeyToFile(newKey)
     }
     
     private func generateDeviceId(from publicKey: P256.Signing.PublicKey) -> String {
@@ -101,50 +106,33 @@ actor DeviceIdentity {
         return hash.prefix(16).map { String(format: "%02x", $0) }.joined()
     }
     
-    private func loadKeyFromKeychain() -> P256.Signing.PrivateKey? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: keyTag,
-            kSecReturnData as String: true
-        ]
-        
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
-        
-        guard status == errSecSuccess,
-              let keyData = item as? Data else {
-            return nil
-        }
-        
+    private func loadKeyFromFile() -> P256.Signing.PrivateKey? {
         do {
+            let keyData = try Data(contentsOf: keyFileURL)
             return try P256.Signing.PrivateKey(rawRepresentation: keyData)
         } catch {
-            print("Failed to load key from keychain: \(error)")
+            // File doesn't exist or key is invalid
             return nil
         }
     }
     
-    private func saveKeyToKeychain(_ key: P256.Signing.PrivateKey) {
+    private func saveKeyToFile(_ key: P256.Signing.PrivateKey) {
         let keyData = key.rawRepresentation
         
-        // Delete any existing key
-        let deleteQuery: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: keyTag
-        ]
-        SecItemDelete(deleteQuery as CFDictionary)
-        
-        // Save new key
-        let addQuery: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: keyTag,
-            kSecValueData as String: keyData,
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock
-        ]
-        
-        let status = SecItemAdd(addQuery as CFDictionary, nil)
-        if status != errSecSuccess {
-            print("Failed to save key to keychain: \(status)")
+        do {
+            // Create directory if needed
+            let directory = keyFileURL.deletingLastPathComponent()
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            
+            // Write key data with restricted permissions
+            try keyData.write(to: keyFileURL, options: [.atomic, .completeFileProtection])
+            
+            // Set file to be hidden and owner-only readable
+            try FileManager.default.setAttributes([
+                .posixPermissions: 0o600
+            ], ofItemAtPath: keyFileURL.path)
+        } catch {
+            print("Failed to save key to file: \(error)")
         }
     }
 }
