@@ -50,7 +50,17 @@ final class PermissionManager: NSObject, CLLocationManagerDelegate {
     override init() {
         super.init()
         setupLocationManager()
-        refreshAllStatuses()
+        // Refresh non-Contacts statuses on init
+        // Contacts status is checked lazily to avoid CNContactStore warnings
+        refreshCalendarStatus()
+        refreshRemindersStatus()
+        refreshLocationStatus()
+        refreshCameraStatus()
+        refreshMicrophoneStatus()
+        refreshScreenCaptureStatus()
+        refreshAccessibilityStatus()
+        refreshFullDiskAccessStatus()
+        refreshAutomationStatus()
     }
     
     private func setupLocationManager() {
