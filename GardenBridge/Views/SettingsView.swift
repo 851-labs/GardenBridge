@@ -227,10 +227,13 @@ struct PermissionsTab: View {
     }
     
     private func bringToFront() {
-        // Small delay to let the native permission dialog fully dismiss
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(100))
+        // Use DispatchQueue to ensure activation happens after dialog dismisses
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             NSApp.activate(ignoringOtherApps: true)
+            // Also bring the settings window to front
+            if let window = NSApp.windows.first(where: { $0.title == "Permissions" || $0.identifier?.rawValue == "com_apple_SwiftUI_Settings_window" }) {
+                window.makeKeyAndOrderFront(nil)
+            }
         }
     }
 }
