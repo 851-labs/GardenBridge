@@ -109,37 +109,64 @@ struct PermissionsTab: View {
                 PermissionRow(
                     name: "Calendar",
                     status: permissionManager.calendarStatus,
-                    action: { Task { await permissionManager.requestCalendarAccess() } }
+                    action: {
+                        Task {
+                            _ = await permissionManager.requestCalendarAccess()
+                        }
+                    }
                 )
                 
                 PermissionRow(
                     name: "Reminders",
                     status: permissionManager.remindersStatus,
-                    action: { Task { await permissionManager.requestRemindersAccess() } }
+                    action: {
+                        Task {
+                            _ = await permissionManager.requestRemindersAccess()
+                        }
+                    }
                 )
                 
                 PermissionRow(
                     name: "Contacts",
                     status: permissionManager.contactsStatus,
-                    action: { Task { await permissionManager.requestContactsAccess() } }
+                    action: {
+                        Task {
+                            _ = await permissionManager.requestContactsAccess()
+                        }
+                    }
                 )
                 
                 PermissionRow(
                     name: "Location",
                     status: permissionManager.locationStatus,
-                    action: { permissionManager.requestLocationAccess() }
+                    action: {
+                        permissionManager.requestLocationAccess()
+                        // Refresh after a delay since location auth is async
+                        Task {
+                            try? await Task.sleep(for: .seconds(1))
+                            permissionManager.refreshLocationStatus()
+                        }
+                    }
                 )
                 
                 PermissionRow(
                     name: "Camera",
                     status: permissionManager.cameraStatus,
-                    action: { Task { await permissionManager.requestCameraAccess() } }
+                    action: {
+                        Task {
+                            _ = await permissionManager.requestCameraAccess()
+                        }
+                    }
                 )
                 
                 PermissionRow(
                     name: "Microphone",
                     status: permissionManager.microphoneStatus,
-                    action: { Task { await permissionManager.requestMicrophoneAccess() } }
+                    action: {
+                        Task {
+                            _ = await permissionManager.requestMicrophoneAccess()
+                        }
+                    }
                 )
             } header: {
                 Text("System Permissions")
@@ -188,6 +215,9 @@ struct PermissionsTab: View {
             }
         }
         .padding()
+        .onAppear {
+            permissionManager.refreshAllStatuses()
+        }
     }
 }
 

@@ -234,7 +234,8 @@ final class PermissionManager {
         case .notDetermined: return .notDetermined
         case .restricted: return .restricted
         case .denied: return .denied
-        case .fullAccess, .writeOnly: return .authorized
+        case .fullAccess: return .authorized
+        case .writeOnly: return .authorized
         @unknown default: return .notDetermined
         }
     }
