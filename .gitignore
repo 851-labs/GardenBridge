@@ -18,6 +18,9 @@ Package.resolved
 # CocoaPods
 Pods/
 
+# Node
+node_modules/
+
 # Carthage
 Carthage/Build/
 
