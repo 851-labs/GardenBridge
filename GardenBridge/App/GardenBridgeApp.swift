@@ -20,7 +20,7 @@ struct GardenBridgeApp: App {
         }
         .menuBarExtraStyle(.window)
         
-        Window("Onboarding", id: "onboarding") {
+        Window("Welcome to GardenBridge", id: "onboarding") {
             OnboardingView()
                 .environment(appDelegate.connectionState)
                 .environment(appDelegate.permissionManager)

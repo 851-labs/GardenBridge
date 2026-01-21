@@ -1,5 +1,5 @@
 import AppKit
-import Foundation
+import SwiftUI
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -7,8 +7,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let permissionManager = PermissionManager()
     var gatewayClient: GatewayClient?
     var commandHandler: CommandHandler?
-    
-    private var hasShownOnboarding = false
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Initialize the command handler with all capability handlers
@@ -20,13 +18,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             commandHandler: commandHandler!
         )
         
-        // Check if this is first launch
+        // Check if this is first launch - if so, the Window scene will handle opening
+        // If already completed onboarding, auto-connect if enabled
         let hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
         
-        if !hasCompletedOnboarding {
-            showOnboarding()
-        } else if connectionState.autoConnect {
-            // Auto-connect to gateway
+        if hasCompletedOnboarding && connectionState.autoConnect {
             Task {
                 await connectToGateway()
             }
@@ -55,25 +51,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         await gatewayClient?.disconnect()
     }
     
-    func showOnboarding() {
-        guard !hasShownOnboarding else { return }
-        hasShownOnboarding = true
-        
-        if let window = NSApp.windows.first(where: { $0.identifier?.rawValue == "onboarding" }) {
-            window.makeKeyAndOrderFront(nil)
-        } else {
-            // Open the onboarding window using SwiftUI's openWindow
-            NSApp.activate(ignoringOtherApps: true)
-        }
-    }
-    
     func completeOnboarding() {
         UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
-        
-        // Close onboarding window if open
-        if let window = NSApp.windows.first(where: { $0.identifier?.rawValue == "onboarding" }) {
-            window.close()
-        }
         
         // Start connection
         Task {

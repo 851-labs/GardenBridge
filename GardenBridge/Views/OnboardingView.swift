@@ -4,6 +4,7 @@ import SwiftUI
 struct OnboardingView: View {
     @Environment(ConnectionState.self) private var connectionState
     @Environment(PermissionManager.self) private var permissionManager
+    @Environment(\.dismissWindow) private var dismissWindow
     
     @State private var currentStep = 0
     
@@ -16,27 +17,28 @@ struct OnboardingView: View {
                 .padding(.horizontal)
                 .padding(.top)
             
-            // Content
-            TabView(selection: $currentStep) {
-                WelcomeStep(onNext: nextStep)
-                    .tag(0)
-                
-                PermissionsStep(permissionManager: permissionManager, onNext: nextStep, onBack: previousStep)
-                    .tag(1)
-                
-                ConnectionStep(connectionState: connectionState, onNext: nextStep, onBack: previousStep)
-                    .tag(2)
-                
-                CompleteStep(onFinish: completeOnboarding)
-                    .tag(3)
+            // Content based on current step
+            Group {
+                switch currentStep {
+                case 0:
+                    WelcomeStep(onNext: nextStep)
+                case 1:
+                    PermissionsStep(permissionManager: permissionManager, onNext: nextStep, onBack: previousStep)
+                case 2:
+                    ConnectionStep(connectionState: connectionState, onNext: nextStep, onBack: previousStep)
+                case 3:
+                    CompleteStep(onFinish: completeOnboarding)
+                default:
+                    EmptyView()
+                }
             }
-            .tabViewStyle(.automatic)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(width: 500, height: 450)
     }
     
     private func nextStep() {
-        withAnimation {
+        withAnimation(.easeInOut(duration: 0.2)) {
             if currentStep < totalSteps - 1 {
                 currentStep += 1
             }
@@ -44,7 +46,7 @@ struct OnboardingView: View {
     }
     
     private func previousStep() {
-        withAnimation {
+        withAnimation(.easeInOut(duration: 0.2)) {
             if currentStep > 0 {
                 currentStep -= 1
             }
@@ -55,6 +57,7 @@ struct OnboardingView: View {
         if let appDelegate = NSApp.delegate as? AppDelegate {
             appDelegate.completeOnboarding()
         }
+        dismissWindow(id: "onboarding")
     }
 }
 

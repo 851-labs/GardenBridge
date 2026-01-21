@@ -95,11 +95,10 @@ struct MenuBarView: View {
                 .buttonStyle(.plain)
             }
             
-            Button(action: openSettings) {
+            SettingsLink {
                 Label("Settings...", systemImage: "gear")
             }
             .buttonStyle(.plain)
-            .keyboardShortcut(",", modifiers: .command)
             
             Button(action: refreshPermissions) {
                 Label("Refresh Permissions", systemImage: "arrow.clockwise")
@@ -144,11 +143,6 @@ struct MenuBarView: View {
                 await appDelegate.disconnectFromGateway()
             }
         }
-    }
-    
-    private func openSettings() {
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-        NSApp.activate(ignoringOtherApps: true)
     }
     
     private func refreshPermissions() {
