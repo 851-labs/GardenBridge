@@ -6,5 +6,8 @@
     "lint:fix": "swiftlint --fix",
     "format": "swiftformat --lint .",
     "format:fix": "swiftformat ."
+  },
+  "devDependencies": {
+    "lefthook": "^1.5.6"
   }
 }
