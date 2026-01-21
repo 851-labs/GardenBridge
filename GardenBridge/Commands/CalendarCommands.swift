@@ -1,0 +1,212 @@
+import Foundation
+import EventKit
+
+/// Handles calendar-related commands using EventKit
+actor CalendarCommands: CommandExecutor {
+    private let eventStore = EKEventStore()
+    
+    func execute(command: String, params: [String: AnyCodable]) async throws -> AnyCodable? {
+        switch command {
+        case "calendar.list":
+            return try await listEvents(params: params)
+        case "calendar.create":
+            return try await createEvent(params: params)
+        case "calendar.update":
+            return try await updateEvent(params: params)
+        case "calendar.delete":
+            return try await deleteEvent(params: params)
+        case "calendar.getCalendars":
+            return try await getCalendars()
+        default:
+            throw CommandError(code: "UNKNOWN_COMMAND", message: "Unknown calendar command: \(command)")
+        }
+    }
+    
+    // MARK: - List Events
+    
+    private func listEvents(params: [String: AnyCodable]) async throws -> AnyCodable {
+        guard let startDateStr = params["startDate"]?.stringValue,
+              let endDateStr = params["endDate"]?.stringValue else {
+            throw CommandError.invalidParam("startDate and endDate are required")
+        }
+        
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        
+        // Also try without fractional seconds
+        guard let startDate = formatter.date(from: startDateStr) ?? ISO8601DateFormatter().date(from: startDateStr) else {
+            throw CommandError.invalidParam("startDate must be ISO8601 format")
+        }
+        
+        guard let endDate = formatter.date(from: endDateStr) ?? ISO8601DateFormatter().date(from: endDateStr) else {
+            throw CommandError.invalidParam("endDate must be ISO8601 format")
+        }
+        
+        let calendars: [EKCalendar]?
+        if let calendarName = params["calendar"]?.stringValue {
+            calendars = eventStore.calendars(for: .event).filter { $0.title == calendarName }
+        } else {
+            calendars = nil
+        }
+        
+        let predicate = eventStore.predicateForEvents(withStart: startDate, end: endDate, calendars: calendars)
+        let events = eventStore.events(matching: predicate)
+        
+        let eventDicts = events.map { event -> [String: Any] in
+            var dict: [String: Any] = [
+                "id": event.eventIdentifier ?? "",
+                "title": event.title ?? "",
+                "startDate": formatter.string(from: event.startDate),
+                "endDate": formatter.string(from: event.endDate),
+                "isAllDay": event.isAllDay,
+                "calendar": event.calendar?.title ?? ""
+            ]
+            
+            if let location = event.location {
+                dict["location"] = location
+            }
+            if let notes = event.notes {
+                dict["notes"] = notes
+            }
+            if let url = event.url {
+                dict["url"] = url.absoluteString
+            }
+            
+            return dict
+        }
+        
+        return AnyCodable(["events": eventDicts])
+    }
+    
+    // MARK: - Create Event
+    
+    private func createEvent(params: [String: AnyCodable]) async throws -> AnyCodable {
+        guard let title = params["title"]?.stringValue else {
+            throw CommandError.invalidParam("title")
+        }
+        
+        guard let startDateStr = params["startDate"]?.stringValue,
+              let endDateStr = params["endDate"]?.stringValue else {
+            throw CommandError.invalidParam("startDate and endDate are required")
+        }
+        
+        let formatter = ISO8601DateFormatter()
+        
+        guard let startDate = formatter.date(from: startDateStr) else {
+            throw CommandError.invalidParam("startDate must be ISO8601 format")
+        }
+        
+        guard let endDate = formatter.date(from: endDateStr) else {
+            throw CommandError.invalidParam("endDate must be ISO8601 format")
+        }
+        
+        let event = EKEvent(eventStore: eventStore)
+        event.title = title
+        event.startDate = startDate
+        event.endDate = endDate
+        event.isAllDay = params["isAllDay"]?.boolValue ?? false
+        
+        if let location = params["location"]?.stringValue {
+            event.location = location
+        }
+        if let notes = params["notes"]?.stringValue {
+            event.notes = notes
+        }
+        if let urlStr = params["url"]?.stringValue, let url = URL(string: urlStr) {
+            event.url = url
+        }
+        
+        // Get calendar
+        if let calendarName = params["calendar"]?.stringValue,
+           let calendar = eventStore.calendars(for: .event).first(where: { $0.title == calendarName }) {
+            event.calendar = calendar
+        } else {
+            event.calendar = eventStore.defaultCalendarForNewEvents
+        }
+        
+        try eventStore.save(event, span: .thisEvent)
+        
+        return AnyCodable([
+            "id": event.eventIdentifier ?? "",
+            "success": true
+        ])
+    }
+    
+    // MARK: - Update Event
+    
+    private func updateEvent(params: [String: AnyCodable]) async throws -> AnyCodable {
+        guard let eventId = params["id"]?.stringValue else {
+            throw CommandError.invalidParam("id")
+        }
+        
+        guard let event = eventStore.event(withIdentifier: eventId) else {
+            throw CommandError.notFound
+        }
+        
+        if let title = params["title"]?.stringValue {
+            event.title = title
+        }
+        
+        let formatter = ISO8601DateFormatter()
+        
+        if let startDateStr = params["startDate"]?.stringValue,
+           let startDate = formatter.date(from: startDateStr) {
+            event.startDate = startDate
+        }
+        
+        if let endDateStr = params["endDate"]?.stringValue,
+           let endDate = formatter.date(from: endDateStr) {
+            event.endDate = endDate
+        }
+        
+        if let isAllDay = params["isAllDay"]?.boolValue {
+            event.isAllDay = isAllDay
+        }
+        
+        if let location = params["location"]?.stringValue {
+            event.location = location
+        }
+        
+        if let notes = params["notes"]?.stringValue {
+            event.notes = notes
+        }
+        
+        try eventStore.save(event, span: .thisEvent)
+        
+        return AnyCodable(["success": true])
+    }
+    
+    // MARK: - Delete Event
+    
+    private func deleteEvent(params: [String: AnyCodable]) async throws -> AnyCodable {
+        guard let eventId = params["id"]?.stringValue else {
+            throw CommandError.invalidParam("id")
+        }
+        
+        guard let event = eventStore.event(withIdentifier: eventId) else {
+            throw CommandError.notFound
+        }
+        
+        try eventStore.remove(event, span: .thisEvent)
+        
+        return AnyCodable(["success": true])
+    }
+    
+    // MARK: - Get Calendars
+    
+    private func getCalendars() async throws -> AnyCodable {
+        let calendars = eventStore.calendars(for: .event)
+        
+        let calendarDicts = calendars.map { calendar -> [String: Any] in
+            [
+                "id": calendar.calendarIdentifier,
+                "title": calendar.title,
+                "type": calendar.type.rawValue,
+                "isImmutable": calendar.isImmutable,
+                "allowsContentModifications": calendar.allowsContentModifications
+            ]
+        }
+        
+        return AnyCodable(["calendars": calendarDicts])
+    }
+}

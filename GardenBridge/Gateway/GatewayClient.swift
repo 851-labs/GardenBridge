@@ -1,0 +1,334 @@
+import Foundation
+
+/// WebSocket client for connecting to Clawdbot Gateway
+actor GatewayClient {
+    private let connectionState: ConnectionState
+    private let commandHandler: CommandHandler
+    private let deviceIdentity: DeviceIdentity
+    
+    private var webSocketTask: URLSessionWebSocketTask?
+    private var urlSession: URLSession?
+    private var pendingRequests: [String: CheckedContinuation<GatewayResponse, Error>] = [:]
+    private var receiveTask: Task<Void, Never>?
+    private var pingTask: Task<Void, Never>?
+    
+    private var challengeNonce: String?
+    private var challengeTimestamp: Int64?
+    
+    init(connectionState: ConnectionState, commandHandler: CommandHandler) {
+        self.connectionState = connectionState
+        self.commandHandler = commandHandler
+        self.deviceIdentity = DeviceIdentity()
+    }
+    
+    // MARK: - Public Methods
+    
+    func connect() async {
+        await MainActor.run {
+            connectionState.setStatus(.connecting)
+        }
+        
+        guard let url = await connectionState.gatewayURL else {
+            await MainActor.run {
+                connectionState.setStatus(.error("Invalid gateway URL"))
+            }
+            return
+        }
+        
+        // Create URL session and WebSocket task
+        urlSession = URLSession(configuration: .default)
+        webSocketTask = urlSession?.webSocketTask(with: url)
+        webSocketTask?.resume()
+        
+        // Start receiving messages
+        receiveTask = Task {
+            await receiveMessages()
+        }
+        
+        // Wait for challenge event, then send connect request
+        // The challenge should arrive shortly after connection
+        try? await Task.sleep(for: .milliseconds(500))
+        
+        // Send connect request
+        await sendConnectRequest()
+    }
+    
+    func disconnect() async {
+        receiveTask?.cancel()
+        pingTask?.cancel()
+        webSocketTask?.cancel(with: .goingAway, reason: nil)
+        webSocketTask = nil
+        urlSession = nil
+        
+        await MainActor.run {
+            connectionState.setStatus(.disconnected)
+        }
+    }
+    
+    // MARK: - Private Methods
+    
+    private func receiveMessages() async {
+        guard let webSocket = webSocketTask else { return }
+        
+        while !Task.isCancelled {
+            do {
+                let message = try await webSocket.receive()
+                
+                switch message {
+                case .string(let text):
+                    await handleMessage(text)
+                case .data(let data):
+                    if let text = String(data: data, encoding: .utf8) {
+                        await handleMessage(text)
+                    }
+                @unknown default:
+                    break
+                }
+            } catch {
+                if !Task.isCancelled {
+                    print("WebSocket receive error: \(error)")
+                    await MainActor.run {
+                        connectionState.setStatus(.error("Connection lost: \(error.localizedDescription)"))
+                    }
+                }
+                break
+            }
+        }
+    }
+    
+    private func handleMessage(_ text: String) async {
+        guard let data = text.data(using: .utf8) else { return }
+        
+        // Try to decode the message type first
+        struct MessageEnvelope: Codable {
+            let type: String
+            let id: String?
+            let event: String?
+        }
+        
+        guard let envelope = try? JSONDecoder().decode(MessageEnvelope.self, from: data) else {
+            print("Failed to decode message envelope: \(text)")
+            return
+        }
+        
+        switch envelope.type {
+        case "event":
+            await handleEvent(data: data, event: envelope.event)
+            
+        case "res":
+            await handleResponse(data: data, id: envelope.id)
+            
+        case "invoke":
+            await handleInvoke(data: data)
+            
+        case "ping":
+            await sendPong()
+            
+        default:
+            print("Unknown message type: \(envelope.type)")
+        }
+    }
+    
+    private func handleEvent(data: Data, event: String?) async {
+        guard let event = event else { return }
+        
+        switch event {
+        case "connect.challenge":
+            // Decode challenge
+            struct ChallengeEvent: Codable {
+                let payload: ConnectChallengePayload
+            }
+            
+            if let challenge = try? JSONDecoder().decode(ChallengeEvent.self, from: data) {
+                challengeNonce = challenge.payload.nonce
+                challengeTimestamp = challenge.payload.ts
+            }
+            
+        default:
+            print("Received event: \(event)")
+        }
+    }
+    
+    private func handleResponse(data: Data, id: String?) async {
+        guard let id = id,
+              let response = try? JSONDecoder().decode(GatewayResponse.self, from: data) else {
+            return
+        }
+        
+        // Check for hello-ok response
+        if response.ok, let payload = response.payload {
+            if let dict = payload.dictionaryValue,
+               let type = dict["type"] as? String,
+               type == "hello-ok" {
+                await handleHelloOk(payload: payload)
+            }
+        }
+        
+        // Resume any pending request continuation
+        if let continuation = pendingRequests.removeValue(forKey: id) {
+            continuation.resume(returning: response)
+        }
+    }
+    
+    private func handleHelloOk(payload: AnyCodable) async {
+        // Extract device token if present
+        if let dict = payload.dictionaryValue,
+           let auth = dict["auth"] as? [String: Any],
+           let deviceToken = auth["deviceToken"] as? String {
+            await MainActor.run {
+                connectionState.deviceToken = deviceToken
+                connectionState.saveSettings()
+            }
+        }
+        
+        // Update status to paired
+        await MainActor.run {
+            connectionState.setStatus(.paired)
+        }
+        
+        // Start ping task
+        pingTask = Task {
+            await sendPings()
+        }
+    }
+    
+    private func handleInvoke(data: Data) async {
+        guard let invoke = try? JSONDecoder().decode(GatewayInvoke.self, from: data) else {
+            print("Failed to decode invoke message")
+            return
+        }
+        
+        // Handle the command
+        let response = await commandHandler.handle(invoke: invoke)
+        
+        // Send response
+        await sendInvokeResponse(response)
+    }
+    
+    private func sendConnectRequest() async {
+        let deviceInfo = await deviceIdentity.createDeviceInfo(
+            nonce: challengeNonce,
+            timestamp: challengeTimestamp
+        )
+        
+        let deviceToken = await MainActor.run { connectionState.deviceToken }
+        
+        let params = ConnectParams(
+            minProtocol: GATEWAY_PROTOCOL_VERSION,
+            maxProtocol: GATEWAY_PROTOCOL_VERSION,
+            client: ClientInfo(
+                id: "gardenbridge-macos",
+                version: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0",
+                platform: "macos",
+                mode: "node"
+            ),
+            role: "node",
+            scopes: [],
+            caps: NodeCapability.allCases.map { $0.rawValue },
+            commands: NodeCommand.allCases.map { $0.rawValue },
+            permissions: await commandHandler.getPermissions(),
+            auth: AuthInfo(token: nil, deviceToken: deviceToken),
+            locale: Locale.current.identifier,
+            userAgent: "GardenBridge/\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0") macOS",
+            device: deviceInfo
+        )
+        
+        let request = GatewayRequest(
+            method: "connect",
+            params: ["minProtocol": AnyCodable(params.minProtocol),
+                     "maxProtocol": AnyCodable(params.maxProtocol),
+                     "client": AnyCodable([
+                        "id": params.client.id,
+                        "version": params.client.version,
+                        "platform": params.client.platform,
+                        "mode": params.client.mode
+                     ]),
+                     "role": AnyCodable(params.role),
+                     "scopes": AnyCodable(params.scopes),
+                     "caps": AnyCodable(params.caps),
+                     "commands": AnyCodable(params.commands),
+                     "permissions": AnyCodable(params.permissions),
+                     "auth": AnyCodable([
+                        "token": params.auth?.token as Any,
+                        "deviceToken": params.auth?.deviceToken as Any
+                     ]),
+                     "locale": AnyCodable(params.locale),
+                     "userAgent": AnyCodable(params.userAgent),
+                     "device": AnyCodable([
+                        "id": params.device.id,
+                        "publicKey": params.device.publicKey as Any,
+                        "signature": params.device.signature as Any,
+                        "signedAt": params.device.signedAt as Any,
+                        "nonce": params.device.nonce as Any
+                     ])]
+        )
+        
+        await sendRequest(request)
+        
+        // Update status to connected (awaiting pairing)
+        await MainActor.run {
+            connectionState.setStatus(.connected)
+        }
+    }
+    
+    private func sendRequest(_ request: GatewayRequest) async {
+        guard let webSocket = webSocketTask else { return }
+        
+        do {
+            let data = try JSONEncoder().encode(request)
+            if let text = String(data: data, encoding: .utf8) {
+                try await webSocket.send(.string(text))
+            }
+        } catch {
+            print("Failed to send request: \(error)")
+        }
+    }
+    
+    private func sendInvokeResponse(_ response: GatewayInvokeResponse) async {
+        guard let webSocket = webSocketTask else { return }
+        
+        do {
+            let data = try JSONEncoder().encode(response)
+            if let text = String(data: data, encoding: .utf8) {
+                try await webSocket.send(.string(text))
+            }
+        } catch {
+            print("Failed to send invoke response: \(error)")
+        }
+    }
+    
+    private func sendPong() async {
+        guard let webSocket = webSocketTask else { return }
+        
+        let pong = ["type": "pong"]
+        
+        do {
+            let data = try JSONSerialization.data(withJSONObject: pong)
+            if let text = String(data: data, encoding: .utf8) {
+                try await webSocket.send(.string(text))
+            }
+        } catch {
+            print("Failed to send pong: \(error)")
+        }
+    }
+    
+    private func sendPings() async {
+        while !Task.isCancelled {
+            try? await Task.sleep(for: .seconds(15))
+            
+            guard let webSocket = webSocketTask else { break }
+            
+            let ping = ["type": "ping"]
+            
+            do {
+                let data = try JSONSerialization.data(withJSONObject: ping)
+                if let text = String(data: data, encoding: .utf8) {
+                    try await webSocket.send(.string(text))
+                }
+            } catch {
+                print("Failed to send ping: \(error)")
+                break
+            }
+        }
+    }
+}

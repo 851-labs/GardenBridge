@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIconFile</key>
+	<string></string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSCalendarsUsageDescription</key>
+	<string>GardenBridge needs calendar access to let AI assistants read and create calendar events on your behalf.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>GardenBridge needs contacts access to let AI assistants find contact information and birthdays.</string>
+	<key>NSRemindersUsageDescription</key>
+	<string>GardenBridge needs reminders access to let AI assistants read and create reminders on your behalf.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>GardenBridge needs location access to provide your current location to AI assistants when requested.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>GardenBridge needs location access to provide your current location to AI assistants when requested.</string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>GardenBridge needs Apple Events access to execute AppleScript automations requested by AI assistants.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>GardenBridge needs camera access to capture photos when requested by AI assistants.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>GardenBridge needs microphone access for audio capture when requested by AI assistants.</string>
+	<key>NSScreenCaptureUsageDescription</key>
+	<string>GardenBridge needs screen capture access to take screenshots when requested by AI assistants.</string>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+	<key>NSSupportsAutomaticTermination</key>
+	<true/>
+	<key>NSSupportsSuddenTermination</key>
+	<true/>
+</dict>
+</plist>
