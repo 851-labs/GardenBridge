@@ -121,7 +121,7 @@ struct PermissionsTab: View {
             privacyPermissionsSection
             refreshSection
         }
-        .padding()
+        .formStyle(.grouped)
         .onAppear {
             permissionManager.refreshAllStatuses()
         }
