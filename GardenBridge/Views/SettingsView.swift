@@ -227,7 +227,11 @@ struct PermissionsTab: View {
     }
     
     private func bringToFront() {
-        NSApp.activate(ignoringOtherApps: true)
+        // Small delay to let the native permission dialog fully dismiss
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(100))
+            NSApp.activate(ignoringOtherApps: true)
+        }
     }
 }
 
