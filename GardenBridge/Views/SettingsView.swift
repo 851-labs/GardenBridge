@@ -144,12 +144,7 @@ struct PermissionsTab: View {
                     status: permissionManager.locationStatus,
                     action: {
                         permissionManager.requestLocationAccess()
-                        // Refresh after a delay since location auth is async
-                        Task {
-                            try? await Task.sleep(for: .seconds(1))
-                            permissionManager.refreshLocationStatus()
-                            bringToFront()
-                        }
+                        bringToFront()
                     }
                 )
                 
@@ -227,13 +222,9 @@ struct PermissionsTab: View {
     }
     
     private func bringToFront() {
-        // Use DispatchQueue to ensure activation happens after dialog dismisses
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(200))
             NSApp.activate(ignoringOtherApps: true)
-            // Also bring the settings window to front
-            if let window = NSApp.windows.first(where: { $0.title == "Permissions" || $0.identifier?.rawValue == "com_apple_SwiftUI_Settings_window" }) {
-                window.makeKeyAndOrderFront(nil)
-            }
         }
     }
 }

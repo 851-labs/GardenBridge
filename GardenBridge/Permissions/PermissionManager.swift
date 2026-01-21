@@ -23,7 +23,7 @@ enum PermissionStatus: String, Sendable {
 /// Manages macOS permissions for all capabilities
 @Observable
 @MainActor
-final class PermissionManager {
+final class PermissionManager: NSObject, CLLocationManagerDelegate {
     // Permission statuses
     var calendarStatus: PermissionStatus = .notDetermined
     var remindersStatus: PermissionStatus = .notDetermined
@@ -41,8 +41,23 @@ final class PermissionManager {
     private let contactStore = CNContactStore()
     private var locationManager: CLLocationManager?
     
-    init() {
+    override init() {
+        super.init()
+        setupLocationManager()
         refreshAllStatuses()
+    }
+    
+    private func setupLocationManager() {
+        locationManager = CLLocationManager()
+        locationManager?.delegate = self
+    }
+    
+    // MARK: - CLLocationManagerDelegate
+    
+    nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        Task { @MainActor in
+            refreshLocationStatus()
+        }
     }
     
     // MARK: - Status Refresh
@@ -76,9 +91,6 @@ final class PermissionManager {
     }
     
     func refreshLocationStatus() {
-        if locationManager == nil {
-            locationManager = CLLocationManager()
-        }
         let status = locationManager?.authorizationStatus ?? .notDetermined
         locationStatus = convertCLAuthStatus(status)
     }
@@ -160,9 +172,6 @@ final class PermissionManager {
     }
     
     func requestLocationAccess() {
-        if locationManager == nil {
-            locationManager = CLLocationManager()
-        }
         locationManager?.requestWhenInUseAuthorization()
     }
     
