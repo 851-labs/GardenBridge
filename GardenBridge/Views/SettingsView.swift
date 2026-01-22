@@ -171,6 +171,66 @@ struct PermissionsTab: View {
         })
 
       PermissionRow(
+        name: "Photos",
+        systemImage: "photo",
+        status: self.permissionManager.photosStatus,
+        action: {
+          if self.permissionManager.photosStatus == .denied
+            || self.permissionManager.photosStatus == .restricted
+          {
+            self.permissionManager.openPhotosSettings()
+          } else {
+            self.performPermissionRequest {
+              _ = await self.permissionManager.requestPhotosAccess()
+            }
+          }
+        },
+        opensSettings: self.permissionManager.photosStatus == .denied
+          || self.permissionManager.photosStatus == .restricted)
+
+      PermissionRow(
+        name: "Media & Apple Music",
+        systemImage: "music.note.list",
+        status: self.permissionManager.mediaLibraryStatus,
+        action: {
+          self.permissionManager.requestMediaLibraryAccess()
+        },
+        opensSettings: true)
+
+      PermissionRow(
+        name: "Notifications",
+        systemImage: "bell.badge",
+        status: self.permissionManager.notificationsStatus,
+        action: {
+          if self.permissionManager.notificationsStatus == .denied {
+            self.permissionManager.openNotificationsSettings()
+          } else {
+            self.performPermissionRequest {
+              _ = await self.permissionManager.requestNotificationsAccess()
+            }
+          }
+        },
+        opensSettings: self.permissionManager.notificationsStatus == .denied)
+
+      PermissionRow(
+        name: "Local Network",
+        systemImage: "network",
+        status: self.permissionManager.localNetworkStatus,
+        action: {
+          if self.permissionManager.localNetworkStatus == .denied
+            || self.permissionManager.localNetworkStatus == .restricted
+            || self.permissionManager.localNetworkStatus == .notAvailable
+          {
+            self.permissionManager.openLocalNetworkSettings()
+          } else {
+            self.permissionManager.requestLocalNetworkAccess()
+          }
+        },
+        opensSettings: self.permissionManager.localNetworkStatus == .denied
+          || self.permissionManager.localNetworkStatus == .restricted
+          || self.permissionManager.localNetworkStatus == .notAvailable)
+
+      PermissionRow(
         name: "Camera",
         systemImage: "camera",
         status: self.permissionManager.cameraStatus,

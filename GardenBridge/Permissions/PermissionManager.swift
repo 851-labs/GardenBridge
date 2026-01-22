@@ -6,8 +6,11 @@ import CoreBluetooth
 @preconcurrency import CoreLocation
 import EventKit
 import Foundation
+import Network
 import Observation
+import Photos
 import ScreenCaptureKit
+import UserNotifications
 
 /// Permission status for each capability
 enum PermissionStatus: String, Sendable {
@@ -39,6 +42,10 @@ final class PermissionManager: NSObject {
   var fullDiskAccessStatus: PermissionStatus = .notDetermined
   var automationStatus: PermissionStatus = .notDetermined
   var bluetoothStatus: PermissionStatus = .notDetermined
+  var notificationsStatus: PermissionStatus = .notDetermined
+  var localNetworkStatus: PermissionStatus = .notDetermined
+  var mediaLibraryStatus: PermissionStatus = .notDetermined
+  var photosStatus: PermissionStatus = .notDetermined
 
   // MARK: - Services
 
@@ -55,6 +62,8 @@ final class PermissionManager: NSObject {
   private var locationDelegate: LocationAuthorizationDelegate?
   private var bluetoothManager: CBCentralManager?
   private var bluetoothDelegate: BluetoothAuthorizationDelegate?
+  private var localNetworkBrowser: NWBrowser?
+  private let localNetworkQueue = DispatchQueue(label: "GardenBridge.LocalNetworkBrowser")
 
   private enum SettingsURL {
     static let accessibility = "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
@@ -63,6 +72,10 @@ final class PermissionManager: NSObject {
     static let screenRecording = "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
     static let microphone = "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone"
     static let bluetooth = "x-apple.systempreferences:com.apple.preference.security?Privacy_Bluetooth"
+    static let photos = "x-apple.systempreferences:com.apple.preference.security?Privacy_Photos"
+    static let mediaLibrary = "x-apple.systempreferences:com.apple.preference.security?Privacy_Media"
+    static let localNetwork = "x-apple.systempreferences:com.apple.preference.security?Privacy_LocalNetwork"
+    static let notifications = "x-apple.systempreferences:com.apple.preference.notifications"
   }
 
   private let fullDiskAccessTestPath = "Library/Safari/Bookmarks.plist"
@@ -99,6 +112,10 @@ final class PermissionManager: NSObject {
     self.refreshFullDiskAccessStatus()
     self.refreshAutomationStatus()
     self.refreshBluetoothStatus()
+    self.refreshNotificationsStatus()
+    self.refreshLocalNetworkStatus()
+    self.refreshMediaLibraryStatus()
+    self.refreshPhotosStatus()
   }
 
   func refreshCalendarStatus() {
@@ -156,6 +173,28 @@ final class PermissionManager: NSObject {
     self.bluetoothStatus = self.convertCBAuthStatus(status)
   }
 
+  func refreshNotificationsStatus() {
+    Task { @MainActor in
+      let settings = await UNUserNotificationCenter.current().notificationSettings()
+      self.notificationsStatus = self.convertUNAuthStatus(settings.authorizationStatus)
+    }
+  }
+
+  func refreshLocalNetworkStatus() {
+    if self.localNetworkStatus == .notDetermined {
+      self.localNetworkStatus = .notDetermined
+    }
+  }
+
+  func refreshMediaLibraryStatus() {
+    self.mediaLibraryStatus = .notDetermined
+  }
+
+  func refreshPhotosStatus() {
+    let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+    self.photosStatus = self.convertPHAuthStatus(status)
+  }
+
   // MARK: - Request Permissions
 
   func requestCalendarAccess() async -> Bool {
@@ -207,6 +246,46 @@ final class PermissionManager: NSObject {
     return granted
   }
 
+  func requestNotificationsAccess() async -> Bool {
+    let center = UNUserNotificationCenter.current()
+
+    do {
+      let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
+      await self.updateNotificationsStatus()
+      return granted
+    } catch {
+      print("Failed to request notification access: \(error)")
+      await self.updateNotificationsStatus()
+      return false
+    }
+  }
+
+  func requestLocalNetworkAccess() {
+    let parameters = NWParameters.tcp
+    let browser = NWBrowser(
+      for: .bonjour(type: "_services._dns-sd._udp", domain: nil),
+      using: parameters)
+
+    browser.stateUpdateHandler = { [weak self] state in
+      Task { @MainActor in
+        self?.handleLocalNetworkState(state)
+      }
+    }
+
+    self.localNetworkBrowser = browser
+    browser.start(queue: self.localNetworkQueue)
+  }
+
+  func requestMediaLibraryAccess() {
+    self.openMediaLibrarySettings()
+  }
+
+  func requestPhotosAccess() async -> Bool {
+    let status = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
+    self.photosStatus = self.convertPHAuthStatus(status)
+    return status == .authorized || status == .limited
+  }
+
   func requestBluetoothAccess() {
     if self.bluetoothManager == nil {
       let delegate = BluetoothAuthorizationDelegate { [weak self] in
@@ -249,6 +328,22 @@ final class PermissionManager: NSObject {
     self.openSystemSettings(SettingsURL.bluetooth)
   }
 
+  func openNotificationsSettings() {
+    self.openSystemSettings(SettingsURL.notifications)
+  }
+
+  func openLocalNetworkSettings() {
+    self.openSystemSettings(SettingsURL.localNetwork)
+  }
+
+  func openMediaLibrarySettings() {
+    self.openSystemSettings(SettingsURL.mediaLibrary)
+  }
+
+  func openPhotosSettings() {
+    self.openSystemSettings(SettingsURL.photos)
+  }
+
   func openScreenRecordingSettings() {
     self.openSystemSettings(SettingsURL.screenRecording)
   }
@@ -278,6 +373,9 @@ final class PermissionManager: NSObject {
       "notification.send": true,
       "shell.execute": true,
       "bluetooth.use": true,
+      "localnetwork.use": true,
+      "media.read": true,
+      "photos.read": true,
     ]
   }
 
@@ -295,6 +393,10 @@ final class PermissionManager: NSObject {
     self.refreshFullDiskAccessStatus()
     self.refreshAutomationStatus()
     self.refreshBluetoothStatus()
+    self.refreshNotificationsStatus()
+    self.refreshLocalNetworkStatus()
+    self.refreshMediaLibraryStatus()
+    self.refreshPhotosStatus()
   }
 
   private func openSystemSettings(_ urlString: String) {
@@ -341,6 +443,53 @@ final class PermissionManager: NSObject {
     case .authorized: return .authorized
     @unknown default: return .notDetermined
     }
+  }
+
+  private func convertUNAuthStatus(_ status: UNAuthorizationStatus) -> PermissionStatus {
+    switch status {
+    case .notDetermined: return .notDetermined
+    case .denied: return .denied
+    case .authorized, .provisional, .ephemeral: return .authorized
+    @unknown default: return .notDetermined
+    }
+  }
+
+  private func convertPHAuthStatus(_ status: PHAuthorizationStatus) -> PermissionStatus {
+    switch status {
+    case .notDetermined: return .notDetermined
+    case .restricted: return .restricted
+    case .denied: return .denied
+    case .authorized, .limited: return .authorized
+    @unknown default: return .notDetermined
+    }
+  }
+
+  private func handleLocalNetworkState(_ state: NWBrowser.State) {
+    switch state {
+    case .ready:
+      self.localNetworkStatus = .authorized
+      self.localNetworkBrowser?.cancel()
+    case let .failed(error):
+      self.localNetworkStatus = self.localNetworkStatus(from: error)
+      self.localNetworkBrowser?.cancel()
+    case let .waiting(error):
+      self.localNetworkStatus = self.localNetworkStatus(from: error)
+    default:
+      break
+    }
+  }
+
+  private func localNetworkStatus(from error: NWError) -> PermissionStatus {
+    if case let .posix(code) = error, code == .EACCES || code == .EPERM {
+      return .denied
+    }
+
+    return .notAvailable
+  }
+
+  private func updateNotificationsStatus() async {
+    let settings = await UNUserNotificationCenter.current().notificationSettings()
+    self.notificationsStatus = self.convertUNAuthStatus(settings.authorizationStatus)
   }
 
   private func convertCBAuthStatus(_ status: CBManagerAuthorization) -> PermissionStatus {

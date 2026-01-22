@@ -28,18 +28,32 @@
 	<string>GardenBridge needs Apple Events access to execute AppleScript automations requested by AI assistants.</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>GardenBridge uses Bluetooth to connect with nearby devices when requested by AI assistants.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_services._dns-sd._udp</string>
+	</array>
 	<key>NSCalendarsUsageDescription</key>
 	<string>GardenBridge needs calendar access to let AI assistants read and create calendar events on your behalf.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>GardenBridge needs camera access to capture photos when requested by AI assistants.</string>
 	<key>NSContactsUsageDescription</key>
 	<string>GardenBridge needs contacts access to let AI assistants find contact information and birthdays.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>GardenBridge uses your local network to discover nearby devices when requested by AI assistants.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>GardenBridge needs location access to provide your current location to AI assistants when requested.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>GardenBridge needs location access to provide your current location to AI assistants when requested.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>GardenBridge needs microphone access for audio capture when requested by AI assistants.</string>
+	<key>NSAppleMusicUsageDescription</key>
+	<string>GardenBridge needs access to Apple Music to read your media library when requested by AI assistants.</string>
+	<key>NSMediaLibraryUsageDescription</key>
+	<string>GardenBridge needs access to your media library when requested by AI assistants.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>GardenBridge needs permission to save photos when requested by AI assistants.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>GardenBridge needs access to your photo library when requested by AI assistants.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 	<key>NSRemindersUsageDescription</key>
