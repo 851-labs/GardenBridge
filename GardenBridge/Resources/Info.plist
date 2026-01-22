@@ -26,6 +26,8 @@
 	<true/>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>GardenBridge needs Apple Events access to execute AppleScript automations requested by AI assistants.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>GardenBridge uses Bluetooth to connect with nearby devices when requested by AI assistants.</string>
 	<key>NSCalendarsUsageDescription</key>
 	<string>GardenBridge needs calendar access to let AI assistants read and create calendar events on your behalf.</string>
 	<key>NSCameraUsageDescription</key>

@@ -117,8 +117,8 @@ struct PermissionsTab: View {
 
   var body: some View {
     Form {
-      self.systemPermissionsSection
       self.privacyPermissionsSection
+      self.securityPermissionsSection
       self.refreshSection
     }
     .formStyle(.grouped)
@@ -127,8 +127,19 @@ struct PermissionsTab: View {
     }
   }
 
-  private var systemPermissionsSection: some View {
+  private var privacyPermissionsSection: some View {
     Section {
+      PermissionRow(
+        name: "Location",
+        systemImage: "location",
+        status: self.permissionManager.locationStatus,
+        action: {
+          self.permissionManager.requestLocationAccess()
+          Task { @MainActor in
+            await self.bringToFront()
+          }
+        })
+
       PermissionRow(
         name: "Calendar",
         systemImage: "calendar",
@@ -136,16 +147,6 @@ struct PermissionsTab: View {
         action: {
           self.performPermissionRequest {
             _ = await self.permissionManager.requestCalendarAccess()
-          }
-        })
-
-      PermissionRow(
-        name: "Reminders",
-        systemImage: "checklist",
-        status: self.permissionManager.remindersStatus,
-        action: {
-          self.performPermissionRequest {
-            _ = await self.permissionManager.requestRemindersAccess()
           }
         })
 
@@ -160,13 +161,12 @@ struct PermissionsTab: View {
         })
 
       PermissionRow(
-        name: "Location",
-        systemImage: "location",
-        status: self.permissionManager.locationStatus,
+        name: "Reminders",
+        systemImage: "checklist",
+        status: self.permissionManager.remindersStatus,
         action: {
-          self.permissionManager.requestLocationAccess()
-          Task { @MainActor in
-            await self.bringToFront()
+          self.performPermissionRequest {
+            _ = await self.permissionManager.requestRemindersAccess()
           }
         })
 
@@ -194,12 +194,28 @@ struct PermissionsTab: View {
           }
         },
         opensSettings: self.permissionManager.microphoneStatus == .denied)
+
+      PermissionRow(
+        name: "Bluetooth",
+        systemImage: "dot.radiowaves.left.and.right",
+        status: self.permissionManager.bluetoothStatus,
+        action: {
+          if self.permissionManager.bluetoothStatus == .denied
+            || self.permissionManager.bluetoothStatus == .restricted
+          {
+            self.permissionManager.openBluetoothSettings()
+          } else {
+            self.permissionManager.requestBluetoothAccess()
+          }
+        },
+        opensSettings: self.permissionManager.bluetoothStatus == .denied
+          || self.permissionManager.bluetoothStatus == .restricted)
     } header: {
-      Text("System Permissions")
+      Text("Privacy")
     }
   }
 
-  private var privacyPermissionsSection: some View {
+  private var securityPermissionsSection: some View {
     Section {
       PermissionRow(
         name: "Screen Recording",
@@ -229,7 +245,7 @@ struct PermissionsTab: View {
         action: { self.permissionManager.openAutomationSettings() },
         opensSettings: true)
     } header: {
-      Text("Privacy & Security Settings")
+      Text("Security")
     } footer: {
       Text("These permissions require manual approval in System Settings.")
         .font(.caption)

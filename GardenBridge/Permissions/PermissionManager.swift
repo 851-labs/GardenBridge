@@ -2,6 +2,7 @@ import AppKit
 import ApplicationServices
 import AVFoundation
 import Contacts
+import CoreBluetooth
 @preconcurrency import CoreLocation
 import EventKit
 import Foundation
@@ -37,6 +38,7 @@ final class PermissionManager: NSObject {
   var accessibilityStatus: PermissionStatus = .notDetermined
   var fullDiskAccessStatus: PermissionStatus = .notDetermined
   var automationStatus: PermissionStatus = .notDetermined
+  var bluetoothStatus: PermissionStatus = .notDetermined
 
   // MARK: - Services
 
@@ -51,6 +53,8 @@ final class PermissionManager: NSObject {
 
   private var locationManager: CLLocationManager?
   private var locationDelegate: LocationAuthorizationDelegate?
+  private var bluetoothManager: CBCentralManager?
+  private var bluetoothDelegate: BluetoothAuthorizationDelegate?
 
   private enum SettingsURL {
     static let accessibility = "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
@@ -58,6 +62,7 @@ final class PermissionManager: NSObject {
     static let automation = "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation"
     static let screenRecording = "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
     static let microphone = "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone"
+    static let bluetooth = "x-apple.systempreferences:com.apple.preference.security?Privacy_Bluetooth"
   }
 
   private let fullDiskAccessTestPath = "Library/Safari/Bookmarks.plist"
@@ -93,6 +98,7 @@ final class PermissionManager: NSObject {
     self.refreshAccessibilityStatus()
     self.refreshFullDiskAccessStatus()
     self.refreshAutomationStatus()
+    self.refreshBluetoothStatus()
   }
 
   func refreshCalendarStatus() {
@@ -143,6 +149,11 @@ final class PermissionManager: NSObject {
     // Automation permission is checked per-app, we'll assume not determined
     // The actual check happens when we try to run an AppleScript
     self.automationStatus = .notDetermined
+  }
+
+  func refreshBluetoothStatus() {
+    let status = CBManager.authorization
+    self.bluetoothStatus = self.convertCBAuthStatus(status)
   }
 
   // MARK: - Request Permissions
@@ -196,6 +207,20 @@ final class PermissionManager: NSObject {
     return granted
   }
 
+  func requestBluetoothAccess() {
+    if self.bluetoothManager == nil {
+      let delegate = BluetoothAuthorizationDelegate { [weak self] in
+        Task { @MainActor in
+          self?.refreshBluetoothStatus()
+        }
+      }
+      self.bluetoothDelegate = delegate
+      self.bluetoothManager = CBCentralManager(delegate: delegate, queue: nil)
+    } else {
+      self.refreshBluetoothStatus()
+    }
+  }
+
   func requestScreenCaptureAccess() {
     // This opens System Preferences
     CGRequestScreenCaptureAccess()
@@ -218,6 +243,10 @@ final class PermissionManager: NSObject {
 
   func openAutomationSettings() {
     self.openSystemSettings(SettingsURL.automation)
+  }
+
+  func openBluetoothSettings() {
+    self.openSystemSettings(SettingsURL.bluetooth)
   }
 
   func openScreenRecordingSettings() {
@@ -248,6 +277,7 @@ final class PermissionManager: NSObject {
       "camera.capture": true,
       "notification.send": true,
       "shell.execute": true,
+      "bluetooth.use": true,
     ]
   }
 
@@ -264,6 +294,7 @@ final class PermissionManager: NSObject {
     self.refreshAccessibilityStatus()
     self.refreshFullDiskAccessStatus()
     self.refreshAutomationStatus()
+    self.refreshBluetoothStatus()
   }
 
   private func openSystemSettings(_ urlString: String) {
@@ -311,6 +342,16 @@ final class PermissionManager: NSObject {
     @unknown default: return .notDetermined
     }
   }
+
+  private func convertCBAuthStatus(_ status: CBManagerAuthorization) -> PermissionStatus {
+    switch status {
+    case .notDetermined: return .notDetermined
+    case .restricted: return .restricted
+    case .denied: return .denied
+    case .allowedAlways: return .authorized
+    @unknown default: return .notDetermined
+    }
+  }
 }
 
 // MARK: - Location Authorization Delegate
@@ -324,6 +365,19 @@ private final class LocationAuthorizationDelegate: NSObject, CLLocationManagerDe
   }
 
   func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+    self.onAuthorizationChange()
+  }
+}
+
+private final class BluetoothAuthorizationDelegate: NSObject, CBCentralManagerDelegate {
+  private let onAuthorizationChange: @Sendable () -> Void
+
+  init(onAuthorizationChange: @escaping @Sendable () -> Void) {
+    self.onAuthorizationChange = onAuthorizationChange
+    super.init()
+  }
+
+  func centralManagerDidUpdateState(_ central: CBCentralManager) {
     self.onAuthorizationChange()
   }
 }
