@@ -90,7 +90,7 @@ struct MenuBarView: View {
         .buttonStyle(.plain)
       }
 
-      Button(action: self.openSettings) {
+      SettingsLink {
         Label("Settings...", systemImage: "gear")
       }
       .buttonStyle(.plain)
@@ -138,11 +138,6 @@ struct MenuBarView: View {
         await appDelegate.disconnectFromGateway()
       }
     }
-  }
-
-  private func openSettings() {
-    NSApp.activate(ignoringOtherApps: true)
-    NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
   }
 
   private func refreshPermissions() {
