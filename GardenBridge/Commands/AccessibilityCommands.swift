@@ -180,7 +180,7 @@ actor AccessibilityCommands: CommandExecutor {
           var positionRef: CFTypeRef?
           AXUIElementCopyAttributeValue(window, kAXPositionAttribute as CFString, &positionRef)
           if let positionRef, CFGetTypeID(positionRef) == AXValueGetTypeID() {
-            let positionValue = positionRef as! AXValue
+            let positionValue = unsafeBitCast(positionRef, to: AXValue.self)
             var point = CGPoint.zero
             AXValueGetValue(positionValue, .cgPoint, &point)
             windowInfo["x"] = point.x
@@ -191,7 +191,7 @@ actor AccessibilityCommands: CommandExecutor {
           var sizeRef: CFTypeRef?
           AXUIElementCopyAttributeValue(window, kAXSizeAttribute as CFString, &sizeRef)
           if let sizeRef, CFGetTypeID(sizeRef) == AXValueGetTypeID() {
-            let sizeValue = sizeRef as! AXValue
+            let sizeValue = unsafeBitCast(sizeRef, to: AXValue.self)
             var size = CGSize.zero
             AXValueGetValue(sizeValue, .cgSize, &size)
             windowInfo["width"] = size.width
