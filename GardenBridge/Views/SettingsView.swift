@@ -131,6 +131,7 @@ struct PermissionsTab: View {
     Section {
       PermissionRow(
         name: "Calendar",
+        systemImage: "calendar",
         status: self.permissionManager.calendarStatus,
         action: {
           self.performPermissionRequest {
@@ -140,6 +141,7 @@ struct PermissionsTab: View {
 
       PermissionRow(
         name: "Reminders",
+        systemImage: "checklist",
         status: self.permissionManager.remindersStatus,
         action: {
           self.performPermissionRequest {
@@ -149,6 +151,7 @@ struct PermissionsTab: View {
 
       PermissionRow(
         name: "Contacts",
+        systemImage: "person.crop.circle",
         status: self.permissionManager.contactsStatus,
         action: {
           self.performPermissionRequest {
@@ -158,6 +161,7 @@ struct PermissionsTab: View {
 
       PermissionRow(
         name: "Location",
+        systemImage: "location",
         status: self.permissionManager.locationStatus,
         action: {
           self.permissionManager.requestLocationAccess()
@@ -168,6 +172,7 @@ struct PermissionsTab: View {
 
       PermissionRow(
         name: "Camera",
+        systemImage: "camera",
         status: self.permissionManager.cameraStatus,
         action: {
           self.performPermissionRequest {
@@ -177,6 +182,7 @@ struct PermissionsTab: View {
 
       PermissionRow(
         name: "Microphone",
+        systemImage: "mic",
         status: self.permissionManager.microphoneStatus,
         action: {
           if self.permissionManager.microphoneStatus == .denied {
@@ -197,24 +203,28 @@ struct PermissionsTab: View {
     Section {
       PermissionRow(
         name: "Screen Recording",
+        systemImage: "record.circle",
         status: self.permissionManager.screenCaptureStatus,
         action: { self.permissionManager.requestScreenCaptureAccess() },
         opensSettings: self.permissionManager.screenCaptureStatus != .authorized)
 
       PermissionRow(
         name: "Accessibility",
+        systemImage: "figure.walk",
         status: self.permissionManager.accessibilityStatus,
         action: { self.permissionManager.requestAccessibilityAccess() },
         opensSettings: self.permissionManager.accessibilityStatus != .authorized)
 
       PermissionRow(
         name: "Full Disk Access",
+        systemImage: "externaldrive",
         status: self.permissionManager.fullDiskAccessStatus,
         action: { self.permissionManager.openFullDiskAccessSettings() },
         opensSettings: true)
 
       PermissionRow(
         name: "Automation",
+        systemImage: "gearshape",
         status: self.permissionManager.automationStatus,
         action: { self.permissionManager.openAutomationSettings() },
         opensSettings: true)
@@ -253,25 +263,26 @@ struct PermissionsTab: View {
 
 struct PermissionRow: View {
   let name: String
+  let systemImage: String
   let status: PermissionStatus
   let action: () -> Void
   var opensSettings: Bool = false
 
   var body: some View {
-    HStack {
-      Text(self.name)
+    LabeledContent {
+      HStack(spacing: 12) {
+        self.statusBadge
 
-      Spacer()
-
-      self.statusBadge
-
-      if self.status != .authorized {
-        Button(self.opensSettings ? "Open Settings" : "Request") {
-          self.action()
+        if self.status != .authorized {
+          Button(self.opensSettings ? "Open Settings" : "Request") {
+            self.action()
+          }
+          .buttonStyle(.bordered)
+          .controlSize(.small)
         }
-        .buttonStyle(.bordered)
-        .controlSize(.small)
       }
+    } label: {
+      Label(self.name, systemImage: self.systemImage)
     }
   }
 
