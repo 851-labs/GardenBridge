@@ -20,5 +20,7 @@
 	<true/>
 	<key>com.apple.security.personal-information.location</key>
 	<true/>
+	<key>com.apple.security.personal-information.photos</key>
+	<true/>
 </dict>
 </plist>
