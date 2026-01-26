@@ -3,7 +3,7 @@
  * GardenBridge MCP Server
  *
  * Exposes GardenBridge capabilities to Claude via MCP protocol.
- * Requires GardenBridge.app to be running on localhost:18790.
+ * Requires GardenBridge.app to be running on localhost:28790.
  */
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
