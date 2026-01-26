@@ -1,0 +1,10 @@
+{
+  "name": "GardenBridge",
+  "version": "1.0.0",
+  "description": "Control macOS capabilities - calendar, contacts, files, screen capture, and more",
+  "author": "851 Labs",
+  "mcp": {
+    "command": "node",
+    "args": ["dist/index.js"]
+  }
+}
