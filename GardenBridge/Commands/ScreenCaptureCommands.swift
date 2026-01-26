@@ -3,9 +3,52 @@ import CoreGraphics
 import Foundation
 @preconcurrency import ScreenCaptureKit
 
+/// Storage for temporary screenshot files
+actor ScreenshotStorage {
+  static let shared = ScreenshotStorage()
+
+  private var screenshots: [String: URL] = [:]
+  private let tempDirectory: URL
+
+  private init() {
+    self.tempDirectory = FileManager.default.temporaryDirectory.appendingPathComponent("gardenbridge-screenshots")
+    try? FileManager.default.createDirectory(at: self.tempDirectory, withIntermediateDirectories: true)
+  }
+
+  func store(data: Data, format: String) -> String {
+    let id = UUID().uuidString
+    let ext = format == "jpeg" || format == "jpg" ? "jpg" : format
+    let fileURL = self.tempDirectory.appendingPathComponent("\(id).\(ext)")
+
+    do {
+      try data.write(to: fileURL)
+      self.screenshots[id] = fileURL
+      // Schedule cleanup after 5 minutes
+      Task {
+        try? await Task.sleep(for: .seconds(300))
+        await self.remove(id: id)
+      }
+      return id
+    } catch {
+      return ""
+    }
+  }
+
+  func get(id: String) -> URL? {
+    return self.screenshots[id]
+  }
+
+  func remove(id: String) {
+    if let url = self.screenshots.removeValue(forKey: id) {
+      try? FileManager.default.removeItem(at: url)
+    }
+  }
+}
+
 /// Handles screen capture commands using ScreenCaptureKit
 actor ScreenCaptureCommands: CommandExecutor {
   private let retinaScale: Int = 2
+  private let serverPort: UInt16 = 28790
 
   func execute(command: String, params: [String: AnyCodable]) async throws -> AnyCodable? {
     switch command {
@@ -54,12 +97,21 @@ actor ScreenCaptureCommands: CommandExecutor {
 
     let (data, mimeType) = try encodeImage(image, format: formatLowercased, quality: quality)
 
+    // Store screenshot in temp storage and return URL
+    let imageId = await ScreenshotStorage.shared.store(data: data, format: formatLowercased)
+    guard !imageId.isEmpty else {
+      throw CommandError(code: "STORAGE_FAILED", message: "Failed to store screenshot")
+    }
+
+    let imageUrl = "http://localhost:\(self.serverPort)/screenshot/\(imageId)"
+
     return AnyCodable([
+      "imageId": imageId,
+      "imageUrl": imageUrl,
       "format": format,
       "mimeType": mimeType,
       "width": image.width,
       "height": image.height,
-      "base64": data.base64EncodedString(),
     ])
   }
 

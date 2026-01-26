@@ -89,6 +89,15 @@ actor HTTPServer {
       return
     }
 
+    // Handle screenshot requests: GET /screenshot/{id}
+    if request.method == "GET", request.path.hasPrefix("/screenshot/") {
+      let imageId = String(request.path.dropFirst("/screenshot/".count))
+      Task {
+        await self.handleScreenshotRequest(connection: connection, imageId: imageId)
+      }
+      return
+    }
+
     // Only accept POST /invoke
     guard request.method == "POST", request.path == "/invoke" else {
       self.sendResponse(
@@ -112,6 +121,52 @@ actor HTTPServer {
       let response = await self.executeInvoke(command: invokeRequest.command, params: invokeRequest.params)
       self.sendResponse(connection: connection, statusCode: 200, body: response)
     }
+  }
+
+  // MARK: - Screenshot Serving
+
+  private func handleScreenshotRequest(connection: NWConnection, imageId: String) async {
+    guard let fileURL = await ScreenshotStorage.shared.get(id: imageId) else {
+      self.sendResponse(
+        connection: connection,
+        statusCode: 404,
+        body: self.errorJSON(code: "NOT_FOUND", message: "Screenshot not found"))
+      return
+    }
+
+    do {
+      let data = try Data(contentsOf: fileURL)
+      let ext = fileURL.pathExtension.lowercased()
+      let contentType = switch ext {
+      case "jpg", "jpeg": "image/jpeg"
+      case "png": "image/png"
+      case "tiff": "image/tiff"
+      default: "application/octet-stream"
+      }
+      self.sendImageResponse(connection: connection, data: data, contentType: contentType)
+    } catch {
+      self.sendResponse(
+        connection: connection,
+        statusCode: 500,
+        body: self.errorJSON(code: "READ_ERROR", message: "Failed to read screenshot"))
+    }
+  }
+
+  private nonisolated func sendImageResponse(connection: NWConnection, data: Data, contentType: String) {
+    var response = "HTTP/1.1 200 OK\r\n"
+    response += "Content-Type: \(contentType)\r\n"
+    response += "Content-Length: \(data.count)\r\n"
+    response += "Access-Control-Allow-Origin: *\r\n"
+    response += "Cache-Control: public, max-age=300\r\n"
+    response += "Connection: close\r\n"
+    response += "\r\n"
+
+    var responseData = response.data(using: .utf8)!
+    responseData.append(data)
+
+    connection.send(content: responseData, completion: .contentProcessed { _ in
+      connection.cancel()
+    })
   }
 
   // MARK: - Command Execution

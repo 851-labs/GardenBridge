@@ -6,15 +6,32 @@
  * Requires GardenBridge.app to be running on localhost:28790.
  */
 
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
+import { RESOURCE_MIME_TYPE } from "@modelcontextprotocol/ext-apps/server";
 
 import { invoke } from "./client.js";
 import { tools, toolToCommand } from "./tools.js";
+
+// Load screenshot viewer HTML
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const screenshotViewerHtml = readFileSync(
+  join(__dirname, "screenshot-viewer.html"),
+  "utf-8"
+);
+
+const SCREENSHOT_VIEWER_URI = "ui://gardenbridge/screenshot-viewer";
 
 const server = new Server(
   {
@@ -24,13 +41,60 @@ const server = new Server(
   {
     capabilities: {
       tools: {},
+      resources: {},
     },
   }
 );
 
-// List available tools
+// List available tools with UI metadata for screen_capture
 server.setRequestHandler(ListToolsRequestSchema, async () => {
-  return { tools };
+  const toolsWithMeta = tools.map((tool) => {
+    if (tool.name === "screen_capture") {
+      return {
+        ...tool,
+        _meta: {
+          ui: {
+            resourceUri: SCREENSHOT_VIEWER_URI,
+          },
+        },
+      };
+    }
+    return tool;
+  });
+  return { tools: toolsWithMeta };
+});
+
+// List available resources
+server.setRequestHandler(ListResourcesRequestSchema, async () => {
+  return {
+    resources: [
+      {
+        uri: SCREENSHOT_VIEWER_URI,
+        name: "Screenshot Viewer",
+        description: "Interactive screenshot viewer for GardenBridge",
+        mimeType: RESOURCE_MIME_TYPE,
+      },
+    ],
+  };
+});
+
+// Read resource content
+server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+  const { uri } = request.params;
+
+  if (uri === SCREENSHOT_VIEWER_URI) {
+    return {
+      contents: [
+        {
+          uri: SCREENSHOT_VIEWER_URI,
+          mimeType: RESOURCE_MIME_TYPE,
+          text: screenshotViewerHtml,
+        },
+      ],
+    };
+  }
+
+  throw new Error(`Unknown resource: ${uri}`);
 });
 
 // Handle tool calls
@@ -68,7 +132,24 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       };
     }
 
-    // Handle image responses (screenshots, camera)
+    // Handle screen capture responses (served via URL for MCP Apps)
+    if (
+      result.payload &&
+      typeof result.payload === "object" &&
+      "imageUrl" in result.payload
+    ) {
+      // Return as text JSON - the UI resource will load the image via URL
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(result.payload, null, 2),
+          },
+        ],
+      };
+    }
+
+    // Handle legacy image responses (camera, etc with base64)
     if (
       result.payload &&
       typeof result.payload === "object" &&
