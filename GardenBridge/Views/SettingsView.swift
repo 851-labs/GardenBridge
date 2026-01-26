@@ -1,8 +1,10 @@
+import Sparkle
 import SwiftUI
 
 /// Settings view for managing permissions
 struct SettingsView: View {
   @Environment(PermissionManager.self) private var permissionManager
+  let updaterController: SPUStandardUpdaterController
 
   var body: some View {
     TabView {
@@ -12,7 +14,7 @@ struct SettingsView: View {
           Label("Permissions", systemImage: "lock.shield")
         }
 
-      AboutTab()
+      AboutTab(updaterController: self.updaterController)
         .tabItem {
           Label("About", systemImage: "info.circle")
         }
@@ -299,6 +301,14 @@ struct PermissionRow: View {
 // MARK: - About Tab
 
 struct AboutTab: View {
+  let updaterController: SPUStandardUpdaterController
+
+  private var appVersion: String {
+    let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
+    let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+    return "Version \(version) (\(build))"
+  }
+
   var body: some View {
     VStack(spacing: 20) {
       Image(systemName: "leaf.circle.fill")
@@ -309,7 +319,7 @@ struct AboutTab: View {
         .font(.title)
         .fontWeight(.bold)
 
-      Text("Version 1.0.0")
+      Text(self.appVersion)
         .font(.subheadline)
         .foregroundStyle(.secondary)
 
@@ -328,6 +338,13 @@ struct AboutTab: View {
         .multilineTextAlignment(.center)
         .frame(maxWidth: 300)
 
+      Button {
+        self.updaterController.checkForUpdates(nil)
+      } label: {
+        Label("Check for Updates…", systemImage: "square.and.arrow.down")
+      }
+      .buttonStyle(.bordered)
+
       Spacer()
 
       Text("2026 851 Labs")
@@ -339,6 +356,10 @@ struct AboutTab: View {
 }
 
 #Preview {
-  SettingsView()
+  SettingsView(
+    updaterController: SPUStandardUpdaterController(
+      startingUpdater: false,
+      updaterDelegate: nil,
+      userDriverDelegate: nil))
     .environment(PermissionManager())
 }

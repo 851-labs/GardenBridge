@@ -1,136 +1,77 @@
-# GardenBridge
+<div align="center">
+  <h1>GardenBridge</h1>
+  <p>A macOS menu bar app that gives AI assistants control over your Mac</p>
+</div>
 
-A macOS menu bar application that acts as a Clawdbot Gateway Node, enabling AI assistants to interact with macOS system capabilities through a WebSocket-based protocol.
-
-## Overview
-
-GardenBridge connects your Mac to the Clawdbot Gateway, allowing remote AI systems to execute commands and access local system resources with appropriate permissions. It functions as an intelligent automation node that brings AI capabilities to macOS.
-
-## Features
-
-### Calendar & Events
-- List, create, update, and delete calendar events
-- Query available calendars
-- Support for location, notes, and URL fields
-
-### Contacts
-- Search contacts by name
-- Retrieve detailed contact information (emails, phones, addresses, social profiles)
-- Birthday tracking with upcoming notification support
-
-### Reminders
-- Full CRUD operations for reminders
-- Priority and due date management
-- Calendar-aware organization
-
-### File System
-- Read/write files (text and binary)
-- Directory listing with recursive and hidden file support
-- File metadata retrieval
-
-### Screen & Camera
-- Screenshot capture via ScreenCaptureKit
-- Multiple formats (PNG, JPEG, TIFF) with quality control
-- Camera frame capture
-
-### System Automation
-- **Accessibility**: Click, type, and inspect UI elements
-- **AppleScript**: Execute scripts with dynamic parameters
-- **Shell**: Run terminal commands with output capture
-- **Notifications**: Send macOS notifications
-
-### Location & Device Info
-- Location services integration
-- Bluetooth and local network detection
-
-## Requirements
-
-- macOS 14.0+
-- Xcode 15.0+ (for development)
+<div align="center">
+  <a href="https://github.com/851-labs/GardenBridge/releases/latest">
+    <img src="https://img.shields.io/badge/macOS-26.0%2B-blue?logo=apple&logoColor=white&style=flat" alt="macOS 26.0+">
+  </a>
+  <img src="https://img.shields.io/badge/Swift-6.2-f05138?logo=swift&logoColor=white&style=flat" alt="Swift 6.2">
+  <a href="https://github.com/851-labs/GardenBridge/releases/latest">
+    <img src="https://img.shields.io/github/v/release/851-labs/GardenBridge?label=Release&style=flat" alt="Latest Release">
+  </a>
+  <a href="https://github.com/851-labs/homebrew-tap">
+    <img src="https://img.shields.io/badge/Homebrew-851--labs%2Ftap-fbb040?logo=homebrew&logoColor=white&style=flat" alt="Homebrew tap">
+  </a>
+  <br>
+  <a href="https://github.com/851-labs/GardenBridge/releases/latest/download/GardenBridge.dmg">
+    <img src="https://img.shields.io/badge/Download-macOS-black?logo=apple&logoColor=white&style=flat" alt="Download macOS">
+  </a>
+  <a href="https://github.com/851-labs/GardenBridge/releases/latest">
+    <img src="https://img.shields.io/github/downloads/851-labs/GardenBridge/total?label=downloads&style=flat" alt="Downloads total">
+  </a>
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/License-MIT-blue?style=flat" alt="MIT License">
+  </a>
+</div>
 
 ## Installation
 
-1. Clone the repository
-2. Open `GardenBridge.xcodeproj` in Xcode
-3. Build and run the application
-4. Grant necessary permissions when prompted
+### Direct Download
 
-## Configuration
+Download [the latest release](https://github.com/851-labs/GardenBridge/releases/latest) and drag it to your Applications folder.
 
-### Gateway Connection
+[![Download macOS](https://img.shields.io/badge/Download-macOS-black?logo=apple&logoColor=white&style=for-the-badge)](https://github.com/851-labs/GardenBridge/releases/latest/download/GardenBridge.dmg)
 
-By default, GardenBridge connects to `ws://127.0.0.1:18789`. You can configure the gateway host and port in Settings > Connection.
-
-Options:
-- **Auto-connect on launch**: Automatically connect when the app starts
-- **Custom host/port**: Configure for remote gateway connections
-
-## Permissions
-
-GardenBridge requires various macOS permissions depending on which features you use:
-
-| Permission | Purpose |
-|------------|---------|
-| Calendar | Access and manage calendar events |
-| Contacts | Search and read contact information |
-| Reminders | Manage reminders |
-| Location | Location-based features |
-| Photos | Photo library access |
-| Camera | Capture camera frames |
-| Microphone | Audio capabilities |
-| Screen Recording | Screenshot capture |
-| Accessibility | UI automation and inspection |
-| Full Disk Access | Extended file system access |
-| Notifications | Send system notifications |
-| Bluetooth | Device detection |
-| Local Network | Network service discovery |
-
-Permissions can be managed in Settings > Permissions, which provides direct links to System Settings.
-
-## Architecture
+### Homebrew
 
 ```
-GardenBridge/
-├── App/                    # App lifecycle and state management
-├── Views/                  # SwiftUI views (MenuBar, Settings, Onboarding)
-├── Gateway/                # WebSocket client and protocol
-├── Commands/               # Command handlers for each capability
-├── Permissions/            # Permission management
-└── Resources/              # App configuration and entitlements
+brew install --cask 851-labs/tap/gardenbridge
 ```
 
-### Key Components
+## Features
 
-- **GatewayClient**: Actor-based WebSocket client with challenge-response authentication
-- **CommandHandler**: Central router dispatching commands to specialized handlers
-- **PermissionManager**: Tracks and manages all macOS permissions
+- **32 MCP tools** for calendar, contacts, files, screen capture, shell, and more
+- Works with **Claude Desktop** via MCP extension
+- Menu bar app with full **macOS permissions** management
+- **Auto-updates** via Sparkle
 
-### Protocol
+### Capabilities
 
-- WebSocket-based communication
-- JSON message format with request/response semantics
-- Device identity with HMAC signing
-- 15-second heartbeat keep-alive
+| Category | Tools |
+|----------|-------|
+| Calendar & Events | List, create, update, delete events |
+| Contacts | Search, read contact details |
+| Reminders | Full CRUD with priority and due dates |
+| File System | Read/write files, directory listing |
+| Screen & Camera | Screenshot capture, camera frames |
+| System Automation | Accessibility, AppleScript, shell commands |
+| Notifications | Send macOS notifications |
+| Location | Location services integration |
 
-## Development
+## Tech Stack
 
-### Code Style
-
-The project uses:
-- **SwiftFormat** for code formatting
-- **SwiftLint** for linting
-- **Lefthook** for git hooks
-
-### Building
-
-```bash
-# Open in Xcode
-open GardenBridge.xcodeproj
-
-# Or build from command line
-xcodebuild -project GardenBridge.xcodeproj -scheme GardenBridge build
-```
+- [Swift 6.2](https://www.swift.org/)
+- [SwiftUI](https://developer.apple.com/documentation/swiftui) - UI Framework
+- [MCP](https://modelcontextprotocol.io/) - Model Context Protocol
+- [Sparkle](https://sparkle-project.org/) - Software Update Framework
+- [Node.js](https://nodejs.org/) - MCP server runtime
 
 ## License
 
-Proprietary - 851 Labs
+This project is released under the MIT License.
+
+## Support
+
+If you like this project, please consider giving it a star.
