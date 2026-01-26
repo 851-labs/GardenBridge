@@ -9,8 +9,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   private lazy var gatewayClient = GatewayClient(
     connectionState: connectionState,
     commandHandler: commandHandler)
+  private lazy var httpServer = HTTPServer(commandHandler: commandHandler)
 
   func applicationDidFinishLaunching(_ notification: Notification) {
+    // Start HTTP server for MCP integration
+    Task {
+      do {
+        try await self.httpServer.start()
+      } catch {
+        print("[AppDelegate] Failed to start HTTP server: \(error)")
+      }
+    }
+
     // Check if this is first launch - if so, the Window scene will handle opening
     // If already completed onboarding, auto-connect if enabled
     let hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
@@ -23,8 +33,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   }
 
   func applicationWillTerminate(_ notification: Notification) {
-    // Disconnect from gateway
+    // Stop HTTP server and disconnect from gateway
     Task {
+      await self.httpServer.stop()
       await self.gatewayClient.disconnect()
     }
   }
