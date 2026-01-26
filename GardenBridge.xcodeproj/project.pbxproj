@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		E01000502B5A0001000A0001 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = E01000512B5A0001000A0001 /* Sparkle */; };
+		E01000602B5A0001000A0001 /* gardenbridge.dxt in Resources */ = {isa = PBXBuildFile; fileRef = E01000612B5A0001000A0001 /* gardenbridge.dxt */; };
 		E01000012B5A0001000A0001 /* GardenBridgeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01000002B5A0001000A0001 /* GardenBridgeApp.swift */; };
 		E01000032B5A0001000A0001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E01000022B5A0001000A0001 /* Assets.xcassets */; };
 		E01000052B5A0001000A0001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01000042B5A0001000A0001 /* AppDelegate.swift */; };
@@ -33,6 +34,7 @@
 
 /* Begin PBXFileReference section */
 		E00FFFFF2B5A0001000A0001 /* GardenBridge.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GardenBridge.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E01000612B5A0001000A0001 /* gardenbridge.dxt */ = {isa = PBXFileReference; lastKnownFileType = file; name = gardenbridge.dxt; path = "mcp-server/gardenbridge.dxt"; sourceTree = SOURCE_ROOT; };
 		E01000002B5A0001000A0001 /* GardenBridgeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GardenBridgeApp.swift; sourceTree = "<group>"; };
 		E01000022B5A0001000A0001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		E01000042B5A0001000A0001 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -160,6 +162,7 @@
 				E01000022B5A0001000A0001 /* Assets.xcassets */,
 				E010002E2B5A0001000A0001 /* GardenBridge.entitlements */,
 				E010002F2B5A0001000A0001 /* Info.plist */,
+				E01000612B5A0001000A0001 /* gardenbridge.dxt */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -229,6 +232,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E01000032B5A0001000A0001 /* Assets.xcassets in Resources */,
+				E01000602B5A0001000A0001 /* gardenbridge.dxt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -345,6 +345,21 @@ struct AboutTab: View {
       }
       .buttonStyle(.bordered)
 
+      Button {
+        if let dxtURL = Bundle.main.url(forResource: "gardenbridge", withExtension: "dxt"),
+          let claudeURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.anthropic.claudefordesktop")
+        {
+          NSWorkspace.shared.open(
+            [dxtURL],
+            withApplicationAt: claudeURL,
+            configuration: NSWorkspace.OpenConfiguration()
+          )
+        }
+      } label: {
+        Label("Install in Claude Desktop", systemImage: "puzzlepiece.extension")
+      }
+      .buttonStyle(.bordered)
+
       Spacer()
 
       Text("2026 851 Labs")
