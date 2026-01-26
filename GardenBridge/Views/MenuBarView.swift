@@ -3,6 +3,7 @@ import SwiftUI
 /// The main menu bar dropdown view
 struct MenuBarView: View {
   @Environment(PermissionManager.self) private var permissionManager
+  @Environment(\.openSettings) private var openSettings
 
   private let menuWidth: CGFloat = 280
 
@@ -44,7 +45,9 @@ struct MenuBarView: View {
 
   private var quickActionsSection: some View {
     VStack(alignment: .leading, spacing: 4) {
-      SettingsLink {
+      Button {
+        self.openSettings()
+      } label: {
         Label("Settings...", systemImage: "gear")
       }
       .buttonStyle(.plain)
