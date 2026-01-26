@@ -10,10 +10,8 @@
 		E01000012B5A0001000A0001 /* GardenBridgeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01000002B5A0001000A0001 /* GardenBridgeApp.swift */; };
 		E01000032B5A0001000A0001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E01000022B5A0001000A0001 /* Assets.xcassets */; };
 		E01000052B5A0001000A0001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01000042B5A0001000A0001 /* AppDelegate.swift */; };
-		E01000072B5A0001000A0001 /* GatewayClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01000062B5A0001000A0001 /* GatewayClient.swift */; };
 		E01000402B5A0001000A0001 /* HTTPServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01000412B5A0001000A0001 /* HTTPServer.swift */; };
 		E01000092B5A0001000A0001 /* GatewayProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01000082B5A0001000A0001 /* GatewayProtocol.swift */; };
-		E010000B2B5A0001000A0001 /* DeviceIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = E010000A2B5A0001000A0001 /* DeviceIdentity.swift */; };
 		E010000D2B5A0001000A0001 /* CommandHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = E010000C2B5A0001000A0001 /* CommandHandler.swift */; };
 		E010000F2B5A0001000A0001 /* CalendarCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = E010000E2B5A0001000A0001 /* CalendarCommands.swift */; };
 		E01000112B5A0001000A0001 /* ContactsCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01000102B5A0001000A0001 /* ContactsCommands.swift */; };
@@ -29,7 +27,6 @@
 		E01000252B5A0001000A0001 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01000242B5A0001000A0001 /* MenuBarView.swift */; };
 		E01000272B5A0001000A0001 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01000262B5A0001000A0001 /* SettingsView.swift */; };
 		E01000292B5A0001000A0001 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01000282B5A0001000A0001 /* OnboardingView.swift */; };
-		E010002B2B5A0001000A0001 /* ConnectionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = E010002A2B5A0001000A0001 /* ConnectionState.swift */; };
 		E010002D2B5A0001000A0001 /* ShellCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = E010002C2B5A0001000A0001 /* ShellCommands.swift */; };
 /* End PBXBuildFile section */
 
@@ -38,9 +35,7 @@
 		E01000002B5A0001000A0001 /* GardenBridgeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GardenBridgeApp.swift; sourceTree = "<group>"; };
 		E01000022B5A0001000A0001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		E01000042B5A0001000A0001 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		E01000062B5A0001000A0001 /* GatewayClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GatewayClient.swift; sourceTree = "<group>"; };
 		E01000082B5A0001000A0001 /* GatewayProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GatewayProtocol.swift; sourceTree = "<group>"; };
-		E010000A2B5A0001000A0001 /* DeviceIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceIdentity.swift; sourceTree = "<group>"; };
 		E01000412B5A0001000A0001 /* HTTPServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPServer.swift; sourceTree = "<group>"; };
 		E010000C2B5A0001000A0001 /* CommandHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandHandler.swift; sourceTree = "<group>"; };
 		E010000E2B5A0001000A0001 /* CalendarCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarCommands.swift; sourceTree = "<group>"; };
@@ -57,7 +52,6 @@
 		E01000242B5A0001000A0001 /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
 		E01000262B5A0001000A0001 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		E01000282B5A0001000A0001 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
-		E010002A2B5A0001000A0001 /* ConnectionState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionState.swift; sourceTree = "<group>"; };
 		E010002C2B5A0001000A0001 /* ShellCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellCommands.swift; sourceTree = "<group>"; };
 		E010002E2B5A0001000A0001 /* GardenBridge.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = GardenBridge.entitlements; sourceTree = "<group>"; };
 		E010002F2B5A0001000A0001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -108,7 +102,6 @@
 			children = (
 				E01000002B5A0001000A0001 /* GardenBridgeApp.swift */,
 				E01000042B5A0001000A0001 /* AppDelegate.swift */,
-				E010002A2B5A0001000A0001 /* ConnectionState.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -116,9 +109,7 @@
 		E01000322B5A0001000A0001 /* Gateway */ = {
 			isa = PBXGroup;
 			children = (
-				E01000062B5A0001000A0001 /* GatewayClient.swift */,
 				E01000082B5A0001000A0001 /* GatewayProtocol.swift */,
-				E010000A2B5A0001000A0001 /* DeviceIdentity.swift */,
 				E01000412B5A0001000A0001 /* HTTPServer.swift */,
 			);
 			path = Gateway;
@@ -242,9 +233,7 @@
 			files = (
 				E01000012B5A0001000A0001 /* GardenBridgeApp.swift in Sources */,
 				E01000052B5A0001000A0001 /* AppDelegate.swift in Sources */,
-				E01000072B5A0001000A0001 /* GatewayClient.swift in Sources */,
 				E01000092B5A0001000A0001 /* GatewayProtocol.swift in Sources */,
-				E010000B2B5A0001000A0001 /* DeviceIdentity.swift in Sources */,
 				E01000402B5A0001000A0001 /* HTTPServer.swift in Sources */,
 				E010000D2B5A0001000A0001 /* CommandHandler.swift in Sources */,
 				E010000F2B5A0001000A0001 /* CalendarCommands.swift in Sources */,
@@ -261,7 +250,6 @@
 				E01000252B5A0001000A0001 /* MenuBarView.swift in Sources */,
 				E01000272B5A0001000A0001 /* SettingsView.swift in Sources */,
 				E01000292B5A0001000A0001 /* OnboardingView.swift in Sources */,
-				E010002B2B5A0001000A0001 /* ConnectionState.swift in Sources */,
 				E010002D2B5A0001000A0001 /* ShellCommands.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

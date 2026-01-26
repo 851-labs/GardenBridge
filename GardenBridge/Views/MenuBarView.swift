@@ -2,14 +2,13 @@ import SwiftUI
 
 /// The main menu bar dropdown view
 struct MenuBarView: View {
-  @Environment(ConnectionState.self) private var connectionState
   @Environment(PermissionManager.self) private var permissionManager
 
   private let menuWidth: CGFloat = 280
 
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
-      self.connectionStatusSection
+      self.statusSection
       Divider()
       self.quickActionsSection
       Divider()
@@ -19,58 +18,25 @@ struct MenuBarView: View {
     .frame(width: self.menuWidth)
   }
 
-  // MARK: - Connection Status Section
+  // MARK: - Status Section
 
-  private var connectionStatusSection: some View {
+  private var statusSection: some View {
     VStack(alignment: .leading, spacing: 8) {
       HStack {
-        self.statusIndicator
+        Circle()
+          .fill(.green)
+          .frame(width: 12, height: 12)
 
         VStack(alignment: .leading, spacing: 2) {
-          Text("Clawdbot Gateway")
+          Text("GardenBridge")
             .font(.headline)
-          Text(self.connectionState.status.displayText)
+          Text("HTTP Server Running")
             .font(.caption)
             .foregroundStyle(.secondary)
         }
 
         Spacer()
       }
-
-      if let error = connectionState.lastError {
-        Text(error)
-          .font(.caption2)
-          .foregroundStyle(.red)
-          .lineLimit(2)
-      }
-    }
-  }
-
-  private var statusIndicator: some View {
-    Circle()
-      .fill(self.statusColor)
-      .frame(width: 12, height: 12)
-      .overlay {
-        if self.connectionState.status == .connecting {
-          Circle()
-            .stroke(self.statusColor.opacity(0.5), lineWidth: 2)
-            .frame(width: 18, height: 18)
-        }
-      }
-  }
-
-  private var statusColor: Color {
-    switch self.connectionState.status {
-    case .disconnected:
-      .gray
-    case .connecting:
-      .yellow
-    case .connected:
-      .orange
-    case .paired:
-      .green
-    case .error:
-      .red
     }
   }
 
@@ -78,18 +44,6 @@ struct MenuBarView: View {
 
   private var quickActionsSection: some View {
     VStack(alignment: .leading, spacing: 4) {
-      if self.connectionState.status.isConnected {
-        Button(action: self.disconnect) {
-          Label("Disconnect", systemImage: "bolt.slash")
-        }
-        .buttonStyle(.plain)
-      } else {
-        Button(action: self.connect) {
-          Label("Connect", systemImage: "bolt")
-        }
-        .buttonStyle(.plain)
-      }
-
       SettingsLink {
         Label("Settings...", systemImage: "gear")
       }
@@ -124,22 +78,6 @@ struct MenuBarView: View {
 
   // MARK: - Actions
 
-  private func connect() {
-    Task { @MainActor in
-      if let appDelegate = NSApp.delegate as? AppDelegate {
-        await appDelegate.connectToGateway()
-      }
-    }
-  }
-
-  private func disconnect() {
-    Task { @MainActor in
-      if let appDelegate = NSApp.delegate as? AppDelegate {
-        await appDelegate.disconnectFromGateway()
-      }
-    }
-  }
-
   private func refreshPermissions() {
     self.permissionManager.refreshAllStatuses()
   }
@@ -147,6 +85,5 @@ struct MenuBarView: View {
 
 #Preview {
   MenuBarView()
-    .environment(ConnectionState())
     .environment(PermissionManager())
 }

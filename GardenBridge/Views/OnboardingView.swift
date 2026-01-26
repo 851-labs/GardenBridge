@@ -2,11 +2,10 @@ import SwiftUI
 
 /// Onboarding flow for first-time setup and permission requests
 struct OnboardingView: View {
-  @Environment(ConnectionState.self) private var connectionState
   @Environment(PermissionManager.self) private var permissionManager
   @Environment(\.dismissWindow) private var dismissWindow
 
-  private let totalSteps = 4
+  private let totalSteps = 3
 
   @State private var currentStep = 0
 
@@ -31,8 +30,6 @@ struct OnboardingView: View {
     case 1:
       PermissionsStep(permissionManager: self.permissionManager, onNext: nextStep, onBack: previousStep)
     case 2:
-      ConnectionStep(connectionState: self.connectionState, onNext: nextStep, onBack: previousStep)
-    case 3:
       CompleteStep(onFinish: completeOnboarding)
     default:
       EmptyView()
@@ -84,7 +81,7 @@ struct WelcomeStep: View {
         .font(.largeTitle)
         .fontWeight(.bold)
 
-      Text("GardenBridge connects your Mac to the Clawdbot Gateway, enabling AI assistants to help you with:")
+      Text("GardenBridge exposes your Mac's capabilities to AI assistants via MCP, enabling them to help you with:")
         .font(.body)
         .foregroundStyle(.secondary)
         .multilineTextAlignment(.center)
@@ -256,82 +253,6 @@ struct OnboardingPermissionRow: View {
   }
 }
 
-// MARK: - Connection Step
-
-struct ConnectionStep: View {
-  let connectionState: ConnectionState
-  let onNext: () -> Void
-  let onBack: () -> Void
-
-  var body: some View {
-    @Bindable var state = self.connectionState
-
-    VStack(spacing: 20) {
-      Spacer()
-
-      Image(systemName: "network")
-        .font(.system(size: 60))
-        .foregroundStyle(.purple)
-
-      Text("Connect to Gateway")
-        .font(.title)
-        .fontWeight(.bold)
-
-      Text(
-        "Configure the connection to your Clawdbot Gateway. "
-          + "The default settings work for a local Gateway installation.")
-        .font(.body)
-        .foregroundStyle(.secondary)
-        .multilineTextAlignment(.center)
-        .frame(maxWidth: 400)
-
-      VStack(spacing: 16) {
-        HStack {
-          Text("Host:")
-            .frame(width: 60, alignment: .trailing)
-          TextField("127.0.0.1", text: $state.gatewayHost)
-            .textFieldStyle(.roundedBorder)
-            .frame(width: 200)
-        }
-
-        HStack {
-          Text("Port:")
-            .frame(width: 60, alignment: .trailing)
-          TextField("18789", value: $state.gatewayPort, format: .number)
-            .textFieldStyle(.roundedBorder)
-            .frame(width: 200)
-        }
-
-        Toggle("Auto-connect on launch", isOn: $state.autoConnect)
-      }
-      .padding()
-      .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
-
-      Spacer()
-
-      HStack {
-        Button("Back") {
-          self.onBack()
-        }
-        .buttonStyle(.bordered)
-
-        Spacer()
-
-        Button("Continue") {
-          self.connectionState.saveSettings()
-          self.onNext()
-        }
-        .buttonStyle(.borderedProminent)
-      }
-      .padding(.horizontal, 40)
-
-      Spacer()
-        .frame(height: 20)
-    }
-    .padding()
-  }
-}
-
 // MARK: - Complete Step
 
 struct CompleteStep: View {
@@ -350,17 +271,17 @@ struct CompleteStep: View {
         .fontWeight(.bold)
 
       Text(
-        "GardenBridge is ready to connect to the Clawdbot Gateway. "
-          + "Look for the leaf icon in your menu bar to manage your connection.")
+        "GardenBridge is now running and ready to serve MCP requests. "
+          + "Look for the leaf icon in your menu bar.")
         .font(.body)
         .foregroundStyle(.secondary)
         .multilineTextAlignment(.center)
         .frame(maxWidth: 350)
 
       VStack(alignment: .leading, spacing: 12) {
-        TipRow(icon: "menubar.rectangle", text: "Click the menu bar icon to see connection status")
+        TipRow(icon: "menubar.rectangle", text: "Click the menu bar icon to access settings")
         TipRow(icon: "gear", text: "Use Settings to manage permissions")
-        TipRow(icon: "arrow.clockwise", text: "The app will auto-reconnect if disconnected")
+        TipRow(icon: "server.rack", text: "HTTP server runs on localhost:28790")
       }
       .padding()
       .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
@@ -397,6 +318,5 @@ struct TipRow: View {
 
 #Preview {
   OnboardingView()
-    .environment(ConnectionState())
     .environment(PermissionManager())
 }

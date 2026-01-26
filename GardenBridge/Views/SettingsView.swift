@@ -1,18 +1,11 @@
 import SwiftUI
 
-/// Settings view for configuring the gateway connection and managing permissions
+/// Settings view for managing permissions
 struct SettingsView: View {
-  @Environment(ConnectionState.self) private var connectionState
   @Environment(PermissionManager.self) private var permissionManager
 
   var body: some View {
     TabView {
-      ConnectionSettingsTab()
-        .environment(self.connectionState)
-        .tabItem {
-          Label("Connection", systemImage: "network")
-        }
-
       PermissionsTab()
         .environment(self.permissionManager)
         .tabItem {
@@ -25,86 +18,6 @@ struct SettingsView: View {
         }
     }
     .frame(width: 500, height: 400)
-  }
-}
-
-// MARK: - Connection Settings Tab
-
-struct ConnectionSettingsTab: View {
-  @Environment(ConnectionState.self) private var connectionState
-
-  var body: some View {
-    @Bindable var state = self.connectionState
-
-    Form {
-      Section {
-        TextField("Gateway Host", text: $state.gatewayHost)
-          .textFieldStyle(.roundedBorder)
-
-        TextField("Port", value: $state.gatewayPort, format: .number)
-          .textFieldStyle(.roundedBorder)
-
-        Toggle("Auto-connect on launch", isOn: $state.autoConnect)
-      } header: {
-        Text("Gateway Connection")
-      }
-      self.statusSection
-      self.saveSection
-    }
-    .padding()
-  }
-
-  private var statusSection: some View {
-    Section {
-      HStack {
-        Text("Status:")
-        Spacer()
-        Text(self.connectionState.status.displayText)
-          .foregroundStyle(self.statusColor)
-      }
-
-      if self.connectionState.status.isConnected {
-        Button("Disconnect", action: self.disconnect)
-      } else {
-        Button("Connect", action: self.connect)
-      }
-    } header: {
-      Text("Connection Status")
-    }
-  }
-
-  private var saveSection: some View {
-    Section {
-      Button("Save Settings") {
-        self.connectionState.saveSettings()
-      }
-    }
-  }
-
-  private var statusColor: Color {
-    switch self.connectionState.status {
-    case .disconnected: .gray
-    case .connecting: .yellow
-    case .connected: .orange
-    case .paired: .green
-    case .error: .red
-    }
-  }
-
-  private func connect() {
-    Task { @MainActor in
-      if let appDelegate = NSApp.delegate as? AppDelegate {
-        await appDelegate.connectToGateway()
-      }
-    }
-  }
-
-  private func disconnect() {
-    Task { @MainActor in
-      if let appDelegate = NSApp.delegate as? AppDelegate {
-        await appDelegate.disconnectFromGateway()
-      }
-    }
   }
 }
 
@@ -400,7 +313,7 @@ struct AboutTab: View {
         .font(.subheadline)
         .foregroundStyle(.secondary)
 
-      Text("A Clawdbot Node for macOS")
+      Text("MCP Server for macOS")
         .font(.caption)
         .foregroundStyle(.tertiary)
 
@@ -408,8 +321,8 @@ struct AboutTab: View {
         .frame(width: 200)
 
       Text(
-        "GardenBridge connects your macOS system to the Clawdbot Gateway, "
-          + "allowing AI assistants to interact with your calendar, contacts, reminders, files, and more.")
+        "GardenBridge exposes macOS system capabilities to AI assistants via MCP, "
+          + "allowing them to interact with your calendar, contacts, reminders, files, and more.")
         .font(.caption)
         .foregroundStyle(.secondary)
         .multilineTextAlignment(.center)
@@ -427,6 +340,5 @@ struct AboutTab: View {
 
 #Preview {
   SettingsView()
-    .environment(ConnectionState())
     .environment(PermissionManager())
 }

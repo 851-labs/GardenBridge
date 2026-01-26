@@ -1,62 +1,14 @@
 import Foundation
 
-// MARK: - Protocol Version
+// MARK: - Command Types
 
-let GATEWAY_PROTOCOL_VERSION = 3
-
-// MARK: - Message Types
-
-/// Base protocol message envelope
-enum GatewayMessageType: String, Codable, Sendable {
-  case req
-  case res
-  case event
-  case invoke
-  case invokeRes = "invoke-res"
-  case ping
-  case pong
-}
-
-/// Request message sent to gateway
-struct GatewayRequest: Codable, Sendable {
-  let type: String
-  let id: String
-  let method: String
-  let params: [String: AnyCodable]?
-
-  init(type: String = "req", id: String = UUID().uuidString, method: String, params: [String: AnyCodable]? = nil) {
-    self.type = type
-    self.id = id
-    self.method = method
-    self.params = params
-  }
-}
-
-/// Response message from gateway
-struct GatewayResponse: Codable, Sendable {
-  let type: String
-  let id: String
-  let ok: Bool
-  let payload: AnyCodable?
-  let error: GatewayError?
-}
-
-/// Error structure
+/// Error structure for command responses
 struct GatewayError: Codable, Sendable {
   let code: String
   let message: String
 }
 
-/// Event message from gateway
-struct GatewayEvent: Codable, Sendable {
-  let type: String
-  let event: String
-  let payload: AnyCodable?
-  let seq: Int?
-  let stateVersion: Int?
-}
-
-/// Invoke message from gateway (command request to node)
+/// Invoke message (command request)
 struct GatewayInvoke: Codable, Sendable {
   let type: String
   let id: String
@@ -64,7 +16,7 @@ struct GatewayInvoke: Codable, Sendable {
   let params: [String: AnyCodable]?
 }
 
-/// Invoke response message to gateway
+/// Invoke response message
 struct GatewayInvokeResponse: Codable, Sendable {
   let type: String
   let id: String
@@ -87,72 +39,6 @@ struct GatewayInvokeResponse: Codable, Sendable {
   static func failure(id: String, code: String, message: String) -> GatewayInvokeResponse {
     GatewayInvokeResponse(id: id, ok: false, error: GatewayError(code: code, message: message))
   }
-}
-
-// MARK: - Connect Request/Response
-
-/// Client information sent during connect
-struct ClientInfo: Codable, Sendable {
-  let id: String
-  let version: String
-  let platform: String
-  let mode: String
-}
-
-/// Device identity for pairing
-struct DeviceInfo: Codable, Sendable {
-  let id: String
-  let publicKey: String?
-  let signature: String?
-  let signedAt: Int64?
-  let nonce: String?
-}
-
-/// Auth information
-struct AuthInfo: Codable, Sendable {
-  let token: String?
-  let deviceToken: String?
-}
-
-/// Connect request parameters
-struct ConnectParams: Codable, Sendable {
-  let minProtocol: Int
-  let maxProtocol: Int
-  let client: ClientInfo
-  let role: String
-  let scopes: [String]
-  let caps: [String]
-  let commands: [String]
-  let permissions: [String: Bool]
-  let auth: AuthInfo?
-  let locale: String
-  let userAgent: String
-  let device: DeviceInfo
-}
-
-/// Hello-OK response payload
-struct HelloOkPayload: Codable, Sendable {
-  let type: String
-  let `protocol`: Int
-  let policy: PolicyInfo?
-  let auth: AuthResponseInfo?
-}
-
-struct PolicyInfo: Codable, Sendable {
-  let tickIntervalMs: Int?
-}
-
-struct AuthResponseInfo: Codable, Sendable {
-  let deviceToken: String?
-  let role: String?
-  let scopes: [String]?
-}
-
-// MARK: - Challenge Event
-
-struct ConnectChallengePayload: Codable, Sendable {
-  let nonce: String
-  let ts: Int64
 }
 
 // MARK: - AnyCodable Helper
@@ -215,7 +101,6 @@ struct AnyCodable: Codable, Hashable, @unchecked Sendable {
   }
 
   static func == (lhs: AnyCodable, rhs: AnyCodable) -> Bool {
-    // Simple equality check for common types
     switch (lhs.value, rhs.value) {
     case let (l as Bool, r as Bool): l == r
     case let (l as Int, r as Int): l == r
@@ -261,78 +146,4 @@ struct AnyCodable: Codable, Hashable, @unchecked Sendable {
   var dictionaryValue: [String: Any]? {
     self.value as? [String: Any]
   }
-}
-
-// MARK: - Capability Definitions
-
-/// All capabilities that GardenBridge can provide
-enum NodeCapability: String, CaseIterable, Sendable {
-  case calendar
-  case contacts
-  case reminders
-  case location
-  case applescript
-  case filesystem
-  case accessibility
-  case screen
-  case camera
-  case notifications
-  case shell
-}
-
-/// All commands that GardenBridge can handle
-enum NodeCommand: String, CaseIterable, Sendable {
-  // Calendar
-  case calendarList = "calendar.list"
-  case calendarCreate = "calendar.create"
-  case calendarUpdate = "calendar.update"
-  case calendarDelete = "calendar.delete"
-  case calendarGetCalendars = "calendar.getCalendars"
-
-  // Contacts
-  case contactsSearch = "contacts.search"
-  case contactsGet = "contacts.get"
-  case contactsBirthdays = "contacts.birthdays"
-
-  // Reminders
-  case remindersList = "reminders.list"
-  case remindersCreate = "reminders.create"
-  case remindersComplete = "reminders.complete"
-  case remindersDelete = "reminders.delete"
-  case remindersGetLists = "reminders.getLists"
-
-  // Location
-  case locationGet = "location.get"
-
-  // AppleScript
-  case applescriptExecute = "applescript.execute"
-
-  // FileSystem
-  case fileRead = "file.read"
-  case fileWrite = "file.write"
-  case fileList = "file.list"
-  case fileExists = "file.exists"
-  case fileDelete = "file.delete"
-  case fileInfo = "file.info"
-
-  // Accessibility
-  case accessibilityClick = "accessibility.click"
-  case accessibilityType = "accessibility.type"
-  case accessibilityGetElement = "accessibility.getElement"
-  case accessibilityGetWindows = "accessibility.getWindows"
-
-  // Screen
-  case screenCapture = "screen.capture"
-  case screenList = "screen.list"
-
-  // Camera
-  case cameraSnap = "camera.snap"
-  case cameraList = "camera.list"
-
-  // Notifications
-  case notificationSend = "notification.send"
-
-  // Shell
-  case shellExecute = "shell.execute"
-  case shellWhich = "shell.which"
 }

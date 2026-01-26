@@ -7,13 +7,11 @@ struct GardenBridgeApp: App {
   var body: some Scene {
     Settings {
       SettingsView()
-        .environment(self.appDelegate.connectionState)
         .environment(self.appDelegate.permissionManager)
     }
 
     MenuBarExtra {
       MenuBarView()
-        .environment(self.appDelegate.connectionState)
         .environment(self.appDelegate.permissionManager)
     } label: {
       Label("GardenBridge", systemImage: "leaf.circle.fill")
@@ -22,7 +20,6 @@ struct GardenBridgeApp: App {
 
     Window("Welcome to GardenBridge", id: "onboarding") {
       OnboardingView()
-        .environment(self.appDelegate.connectionState)
         .environment(self.appDelegate.permissionManager)
     }
     .windowResizability(.contentSize)
