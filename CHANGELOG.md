@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.2 - 2026-01-26
+
+### Added
+- MCP Apps support for screen_capture tool
+
 ## 1.0.1 - 2026-01-26
 
 ### Fixed
