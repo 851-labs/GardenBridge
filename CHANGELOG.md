@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1 - 2026-01-26
+
+### Fixed
+- "Install in Claude Desktop" button now properly triggers the extension install dialog
+- Bundled DXT file in app for offline installation
+
 ## 1.0.0 - 2026-01-25
 
 ### Added
