@@ -1,10 +1,19 @@
 {
-  "name": "GardenBridge",
+  "dxt_version": "0.1",
+  "name": "gardenbridge",
   "version": "1.0.0",
-  "description": "Control macOS capabilities - calendar, contacts, files, screen capture, and more",
-  "author": "851 Labs",
-  "mcp": {
-    "command": "node",
-    "args": ["dist/index.js"]
-  }
+  "description": "Control macOS capabilities - calendar, contacts, files, screen capture, shell, and more",
+  "author": {
+    "name": "851 Labs"
+  },
+  "server": {
+    "type": "node",
+    "entry_point": "dist/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/dist/index.js"],
+      "env": {}
+    }
+  },
+  "license": "MIT"
 }
