@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.3 - 2026-01-26
+
+### Fixed
+- MCP Apps UI resource not rendering in Claude.ai (added legacy `ui/resourceUri` key)
+
 ## 1.0.2 - 2026-01-26
 
 ### Added
