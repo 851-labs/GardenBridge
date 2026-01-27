@@ -34,6 +34,8 @@
 	</array>
 	<key>NSCalendarsUsageDescription</key>
 	<string>GardenBridge needs calendar access to let AI assistants read and create calendar events on your behalf.</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>GardenBridge needs full calendar access to let AI assistants read and create calendar events on your behalf.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>GardenBridge needs camera access to capture photos when requested by AI assistants.</string>
 	<key>NSContactsUsageDescription</key>
@@ -58,6 +60,8 @@
 	<string>NSApplication</string>
 	<key>NSRemindersUsageDescription</key>
 	<string>GardenBridge needs reminders access to let AI assistants read and create reminders on your behalf.</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>GardenBridge needs full reminders access to let AI assistants read and create reminders on your behalf.</string>
 	<key>NSScreenCaptureUsageDescription</key>
 	<string>GardenBridge needs screen capture access to take screenshots when requested by AI assistants.</string>
 	<key>NSSupportsAutomaticTermination</key>
