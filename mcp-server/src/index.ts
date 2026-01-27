@@ -53,9 +53,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       return {
         ...tool,
         _meta: {
+          // New format
           ui: {
             resourceUri: SCREENSHOT_VIEWER_URI,
           },
+          // Legacy flat key format (required by some hosts like Claude.ai)
+          "ui/resourceUri": SCREENSHOT_VIEWER_URI,
         },
       };
     }
