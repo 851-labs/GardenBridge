@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.8 - 2026-01-26
+
+### Fixed
+- Media & Apple Music permission now properly triggers system prompt (uses iTunesLibrary framework instead of just opening Settings)
+
 ## 1.0.7 - 2026-01-26
 
 ### Fixed
