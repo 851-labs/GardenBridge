@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.9 - 2026-01-26
+
+### Fixed
+- Calendar/Reminders permission prompts now include required full access usage strings
+- Simplified Local Network permission request flow to improve status handling
+
 ## 1.0.8 - 2026-01-26
 
 ### Fixed
