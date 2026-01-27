@@ -23,7 +23,7 @@ git branch --show-current
 
 Update versions in `GardenBridge.xcodeproj/project.pbxproj`:
 
-- `MARKETING_VERSION` - Set to the new version (e.g., `1.0.3`)
+- `MARKETING_VERSION` - Bump the patch version (e.g. 0.1.27 -> 0.1.28).
 - `CURRENT_PROJECT_VERSION` - Increment the integer by 1
 
 Use the Edit tool to update both occurrences of each version field.
@@ -66,6 +66,13 @@ Watch the Release workflow:
 ```bash
 gh run list --workflow Release --limit 1
 gh run watch
+```
+
+If no run shows up yet, wait a moment and retry until it appears:
+
+```bash
+sleep 10
+gh run list --workflow Release --limit 1
 ```
 
 If the workflow fails, inspect logs:
