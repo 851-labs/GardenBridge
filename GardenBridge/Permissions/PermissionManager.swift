@@ -49,7 +49,13 @@ final class PermissionManager: NSObject {
 
   // MARK: - Services
 
-  private let eventStore = EKEventStore()
+  private var _eventStore: EKEventStore?
+  private var eventStore: EKEventStore {
+    if self._eventStore == nil {
+      self._eventStore = EKEventStore()
+    }
+    return self._eventStore!
+  }
   private var _contactStore: CNContactStore?
   private var contactStore: CNContactStore {
     if self._contactStore == nil {
@@ -119,13 +125,19 @@ final class PermissionManager: NSObject {
   }
 
   func refreshCalendarStatus() {
+    self.resetEventStore()
     let status = EKEventStore.authorizationStatus(for: .event)
     self.calendarStatus = self.convertEKAuthStatus(status)
   }
 
   func refreshRemindersStatus() {
+    self.resetEventStore()
     let status = EKEventStore.authorizationStatus(for: .reminder)
     self.remindersStatus = self.convertEKAuthStatus(status)
+  }
+
+  private func resetEventStore() {
+    self._eventStore = nil
   }
 
   func refreshContactsStatus() {
