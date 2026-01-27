@@ -14,6 +14,11 @@ struct SettingsView: View {
           Label("Permissions", systemImage: "lock.shield")
         }
 
+      IntegrationsTab()
+        .tabItem {
+          Label("Integrations", systemImage: "puzzlepiece.extension")
+        }
+
       AboutTab(updaterController: self.updaterController)
         .tabItem {
           Label("About", systemImage: "info.circle")
@@ -353,21 +358,6 @@ struct AboutTab: View {
       }
       .buttonStyle(.bordered)
 
-      Button {
-        if let dxtURL = Bundle.main.url(forResource: "gardenbridge", withExtension: "dxt"),
-          let claudeURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.anthropic.claudefordesktop")
-        {
-          NSWorkspace.shared.open(
-            [dxtURL],
-            withApplicationAt: claudeURL,
-            configuration: NSWorkspace.OpenConfiguration()
-          )
-        }
-      } label: {
-        Label("Install in Claude Desktop", systemImage: "puzzlepiece.extension")
-      }
-      .buttonStyle(.bordered)
-
       Spacer()
 
       Text("2026 851 Labs")
@@ -375,6 +365,39 @@ struct AboutTab: View {
         .foregroundStyle(.tertiary)
     }
     .padding()
+  }
+}
+
+// MARK: - Integrations Tab
+
+struct IntegrationsTab: View {
+  var body: some View {
+    Form {
+      Section {
+        LabeledContent {
+              Button("Install") {
+                Self.installClaudeExtension()
+              }
+          } label: {
+            Label("Claude Desktop", systemImage: "robot")
+          }
+      }
+    }
+    .formStyle(.grouped)
+  }
+
+  private static func installClaudeExtension() {
+    guard let dxtURL = Bundle.main.url(forResource: "gardenbridge", withExtension: "dxt"),
+          let claudeURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.anthropic.claudefordesktop")
+    else {
+      return
+    }
+
+    NSWorkspace.shared.open(
+      [dxtURL],
+      withApplicationAt: claudeURL,
+      configuration: NSWorkspace.OpenConfiguration()
+    )
   }
 }
 
