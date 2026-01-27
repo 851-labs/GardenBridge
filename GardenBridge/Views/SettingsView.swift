@@ -108,9 +108,18 @@ struct PermissionsTab: View {
         systemImage: "music.note.list",
         status: self.permissionManager.mediaLibraryStatus,
         action: {
-          self.permissionManager.requestMediaLibraryAccess()
+          if self.permissionManager.mediaLibraryStatus == .denied
+            || self.permissionManager.mediaLibraryStatus == .restricted
+          {
+            self.permissionManager.openMediaLibrarySettings()
+          } else {
+            self.performPermissionRequest {
+              _ = await self.permissionManager.requestMediaLibraryAccess()
+            }
+          }
         },
-        opensSettings: true)
+        opensSettings: self.permissionManager.mediaLibraryStatus == .denied
+          || self.permissionManager.mediaLibraryStatus == .restricted)
 
       PermissionRow(
         name: "Notifications",

@@ -8,6 +8,7 @@ import EventKit
 import Foundation
 import Network
 import Observation
+import iTunesLibrary
 import Photos
 import ScreenCaptureKit
 import UserNotifications
@@ -187,7 +188,16 @@ final class PermissionManager: NSObject {
   }
 
   func refreshMediaLibraryStatus() {
-    self.mediaLibraryStatus = .notDetermined
+    // On macOS, we check media library access by trying to access ITLibrary
+    // If it succeeds, permission is granted; if it fails, permission is denied or not determined
+    do {
+      _ = try ITLibrary(apiVersion: "1.0")
+      self.mediaLibraryStatus = .authorized
+    } catch {
+      // Error could mean permission denied or not determined
+      // We can't distinguish between them without additional context
+      self.mediaLibraryStatus = .notDetermined
+    }
   }
 
   func refreshPhotosStatus() {
@@ -276,8 +286,19 @@ final class PermissionManager: NSObject {
     browser.start(queue: self.localNetworkQueue)
   }
 
-  func requestMediaLibraryAccess() {
-    self.openMediaLibrarySettings()
+  func requestMediaLibraryAccess() async -> Bool {
+    // On macOS, trying to access ITLibrary triggers the permission prompt
+    // if the app has the required entitlements and plist keys
+    do {
+      _ = try ITLibrary(apiVersion: "1.0")
+      self.mediaLibraryStatus = .authorized
+      return true
+    } catch {
+      // Access failed - could be permission denied or system error
+      // The system should have shown the prompt, so refresh status
+      self.refreshMediaLibraryStatus()
+      return false
+    }
   }
 
   func requestPhotosAccess() async -> Bool {
@@ -472,6 +493,7 @@ final class PermissionManager: NSObject {
     @unknown default: return .notDetermined
     }
   }
+
 
   private func handleLocalNetworkState(_ state: NWBrowser.State) {
     switch state {
