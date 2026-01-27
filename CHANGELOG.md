@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.7 - 2026-01-26
+
+### Fixed
+- Photos permission prompt now appears correctly (fixed entitlement key for PHPhotoLibrary access)
+
 ## 1.0.6 - 2026-01-26
 
 ### Fixed
