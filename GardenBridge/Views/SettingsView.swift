@@ -143,7 +143,6 @@ struct PermissionsTab: View {
         action: {
           if self.permissionManager.localNetworkStatus == .denied
             || self.permissionManager.localNetworkStatus == .restricted
-            || self.permissionManager.localNetworkStatus == .notAvailable
           {
             self.permissionManager.openLocalNetworkSettings()
           } else {
@@ -151,8 +150,7 @@ struct PermissionsTab: View {
           }
         },
         opensSettings: self.permissionManager.localNetworkStatus == .denied
-          || self.permissionManager.localNetworkStatus == .restricted
-          || self.permissionManager.localNetworkStatus == .notAvailable)
+          || self.permissionManager.localNetworkStatus == .restricted)
 
       PermissionRow(
         name: "Camera",
@@ -286,6 +284,7 @@ struct PermissionRow: View {
     }
   }
 
+  @ViewBuilder
   private var statusBadge: some View {
     HStack(spacing: 4) {
       Circle()

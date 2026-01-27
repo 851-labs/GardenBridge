@@ -30,6 +30,7 @@
 	<string>GardenBridge uses Bluetooth to connect with nearby devices when requested by AI assistants.</string>
 	<key>NSBonjourServices</key>
 	<array>
+		<string>_http._tcp</string>
 		<string>_services._dns-sd._udp</string>
 	</array>
 	<key>NSCalendarsUsageDescription</key>

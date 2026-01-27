@@ -6,7 +6,6 @@ import CoreBluetooth
 @preconcurrency import CoreLocation
 import EventKit
 import Foundation
-import Network
 import Observation
 import iTunesLibrary
 import Photos
@@ -23,6 +22,43 @@ enum PermissionStatus: String, Sendable {
 
   var isGranted: Bool {
     self == .authorized
+  }
+}
+
+final class LocalNetworkAuthorizationDelegate: NSObject, NetServiceBrowserDelegate {
+  private let onStatusUpdate: @MainActor (PermissionStatus) -> Void
+  private let notAuthorizedErrorCode = -72008
+
+  init(onStatusUpdate: @escaping @MainActor (PermissionStatus) -> Void) {
+    self.onStatusUpdate = onStatusUpdate
+  }
+
+  func netServiceBrowserWillSearch(_ browser: NetServiceBrowser) {
+    Task { @MainActor in
+      self.onStatusUpdate(.authorized)
+    }
+  }
+
+  func netServiceBrowser(
+    _ browser: NetServiceBrowser,
+    didNotSearch errorDict: [String: NSNumber]
+  ) {
+    let code = errorDict[NetService.errorCode]?.intValue ?? 0
+    let status: PermissionStatus = code == self.notAuthorizedErrorCode ? .denied : .notDetermined
+
+    Task { @MainActor in
+      self.onStatusUpdate(status)
+    }
+  }
+
+  func netServiceBrowser(
+    _ browser: NetServiceBrowser,
+    didFind service: NetService,
+    moreComing: Bool
+  ) {
+    Task { @MainActor in
+      self.onStatusUpdate(.authorized)
+    }
   }
 }
 
@@ -63,8 +99,8 @@ final class PermissionManager: NSObject {
   private var locationDelegate: LocationAuthorizationDelegate?
   private var bluetoothManager: CBCentralManager?
   private var bluetoothDelegate: BluetoothAuthorizationDelegate?
-  private var localNetworkBrowser: NWBrowser?
-  private let localNetworkQueue = DispatchQueue(label: "GardenBridge.LocalNetworkBrowser")
+  private var localNetworkServiceBrowser: NetServiceBrowser?
+  private var localNetworkDelegate: LocalNetworkAuthorizationDelegate?
 
   private enum SettingsURL {
     static let accessibility = "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
@@ -267,19 +303,22 @@ final class PermissionManager: NSObject {
   }
 
   func requestLocalNetworkAccess() {
-    let parameters = NWParameters.tcp
-    let browser = NWBrowser(
-      for: .bonjour(type: "_services._dns-sd._udp", domain: nil),
-      using: parameters)
+    self.stopLocalNetworkProbe()
 
-    browser.stateUpdateHandler = { [weak self] state in
-      Task { @MainActor in
-        self?.handleLocalNetworkState(state)
+    let delegate = LocalNetworkAuthorizationDelegate { [weak self] status in
+      guard let self else { return }
+      self.localNetworkStatus = status
+
+      if status == .authorized || status == .denied {
+        self.stopLocalNetworkProbe()
       }
     }
 
-    self.localNetworkBrowser = browser
-    browser.start(queue: self.localNetworkQueue)
+    let serviceBrowser = NetServiceBrowser()
+    serviceBrowser.delegate = delegate
+    self.localNetworkDelegate = delegate
+    self.localNetworkServiceBrowser = serviceBrowser
+    serviceBrowser.searchForServices(ofType: "_http._tcp.", inDomain: "local.")
   }
 
   func requestMediaLibraryAccess() async -> Bool {
@@ -421,9 +460,10 @@ final class PermissionManager: NSObject {
     self.refreshPhotosStatus()
   }
 
-  private func openSystemSettings(_ urlString: String) {
-    guard let url = URL(string: urlString) else { return }
-    NSWorkspace.shared.open(url)
+  @discardableResult
+  private func openSystemSettings(_ urlString: String) -> Bool {
+    guard let url = URL(string: urlString) else { return false }
+    return NSWorkspace.shared.open(url)
   }
 
   private func convertEKAuthStatus(_ status: EKAuthorizationStatus) -> PermissionStatus {
@@ -487,27 +527,10 @@ final class PermissionManager: NSObject {
   }
 
 
-  private func handleLocalNetworkState(_ state: NWBrowser.State) {
-    switch state {
-    case .ready:
-      self.localNetworkStatus = .authorized
-      self.localNetworkBrowser?.cancel()
-    case let .failed(error):
-      self.localNetworkStatus = self.localNetworkStatus(from: error)
-      self.localNetworkBrowser?.cancel()
-    case let .waiting(error):
-      self.localNetworkStatus = self.localNetworkStatus(from: error)
-    default:
-      break
-    }
-  }
-
-  private func localNetworkStatus(from error: NWError) -> PermissionStatus {
-    if case let .posix(code) = error, code == .EACCES || code == .EPERM {
-      return .denied
-    }
-
-    return .notAvailable
+  private func stopLocalNetworkProbe() {
+    self.localNetworkServiceBrowser?.stop()
+    self.localNetworkServiceBrowser = nil
+    self.localNetworkDelegate = nil
   }
 
   private func updateNotificationsStatus() async {
