@@ -281,7 +281,16 @@ final class PermissionManager: NSObject {
   }
 
   func requestPhotosAccess() async -> Bool {
+    // Request authorization - this should prompt on first access
     let status = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
+
+    // Perform a minimal fetch to ensure the app is registered in System Settings
+    if status == .authorized || status == .limited {
+      let options = PHFetchOptions()
+      options.fetchLimit = 1
+      _ = PHAsset.fetchAssets(with: options)
+    }
+
     self.photosStatus = self.convertPHAuthStatus(status)
     return status == .authorized || status == .limited
   }
