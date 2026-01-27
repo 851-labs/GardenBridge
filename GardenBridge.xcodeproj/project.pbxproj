@@ -19,6 +19,10 @@
 		E01000112B5A0001000A0001 /* ContactsCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01000102B5A0001000A0001 /* ContactsCommands.swift */; };
 		E01000132B5A0001000A0001 /* RemindersCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01000122B5A0001000A0001 /* RemindersCommands.swift */; };
 		E01000152B5A0001000A0001 /* LocationCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01000142B5A0001000A0001 /* LocationCommands.swift */; };
+		E01000672B5A0001000A0001 /* MusicCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01000632B5A0001000A0001 /* MusicCommands.swift */; };
+		E01000682B5A0001000A0001 /* PhotosCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01000642B5A0001000A0001 /* PhotosCommands.swift */; };
+		E01000692B5A0001000A0001 /* AudioCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01000652B5A0001000A0001 /* AudioCommands.swift */; };
+		E010006A2B5A0001000A0001 /* BluetoothCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01000662B5A0001000A0001 /* BluetoothCommands.swift */; };
 		E01000172B5A0001000A0001 /* AppleScriptCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01000162B5A0001000A0001 /* AppleScriptCommands.swift */; };
 		E01000192B5A0001000A0001 /* FileSystemCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01000182B5A0001000A0001 /* FileSystemCommands.swift */; };
 		E010001B2B5A0001000A0001 /* AccessibilityCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = E010001A2B5A0001000A0001 /* AccessibilityCommands.swift */; };
@@ -45,6 +49,10 @@
 		E01000102B5A0001000A0001 /* ContactsCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactsCommands.swift; sourceTree = "<group>"; };
 		E01000122B5A0001000A0001 /* RemindersCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemindersCommands.swift; sourceTree = "<group>"; };
 		E01000142B5A0001000A0001 /* LocationCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationCommands.swift; sourceTree = "<group>"; };
+		E01000632B5A0001000A0001 /* MusicCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicCommands.swift; sourceTree = "<group>"; };
+		E01000642B5A0001000A0001 /* PhotosCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotosCommands.swift; sourceTree = "<group>"; };
+		E01000652B5A0001000A0001 /* AudioCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioCommands.swift; sourceTree = "<group>"; };
+		E01000662B5A0001000A0001 /* BluetoothCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothCommands.swift; sourceTree = "<group>"; };
 		E01000162B5A0001000A0001 /* AppleScriptCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleScriptCommands.swift; sourceTree = "<group>"; };
 		E01000182B5A0001000A0001 /* FileSystemCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSystemCommands.swift; sourceTree = "<group>"; };
 		E010001A2B5A0001000A0001 /* AccessibilityCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityCommands.swift; sourceTree = "<group>"; };
@@ -127,6 +135,10 @@
 				E01000102B5A0001000A0001 /* ContactsCommands.swift */,
 				E01000122B5A0001000A0001 /* RemindersCommands.swift */,
 				E01000142B5A0001000A0001 /* LocationCommands.swift */,
+				E01000632B5A0001000A0001 /* MusicCommands.swift */,
+				E01000642B5A0001000A0001 /* PhotosCommands.swift */,
+				E01000652B5A0001000A0001 /* AudioCommands.swift */,
+				E01000662B5A0001000A0001 /* BluetoothCommands.swift */,
 				E01000162B5A0001000A0001 /* AppleScriptCommands.swift */,
 				E01000182B5A0001000A0001 /* FileSystemCommands.swift */,
 				E010001A2B5A0001000A0001 /* AccessibilityCommands.swift */,
@@ -252,6 +264,10 @@
 				E01000112B5A0001000A0001 /* ContactsCommands.swift in Sources */,
 				E01000132B5A0001000A0001 /* RemindersCommands.swift in Sources */,
 				E01000152B5A0001000A0001 /* LocationCommands.swift in Sources */,
+				E01000672B5A0001000A0001 /* MusicCommands.swift in Sources */,
+				E01000682B5A0001000A0001 /* PhotosCommands.swift in Sources */,
+				E01000692B5A0001000A0001 /* AudioCommands.swift in Sources */,
+				E010006A2B5A0001000A0001 /* BluetoothCommands.swift in Sources */,
 				E01000172B5A0001000A0001 /* AppleScriptCommands.swift in Sources */,
 				E01000192B5A0001000A0001 /* FileSystemCommands.swift in Sources */,
 				E010001B2B5A0001000A0001 /* AccessibilityCommands.swift in Sources */,

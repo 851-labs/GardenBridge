@@ -176,6 +176,213 @@ export const tools: Tool[] = [
     },
   },
 
+  // Music tools
+  {
+    name: "music_play",
+    description: "Start music playback (optionally by track name)",
+    inputSchema: {
+      type: "object",
+      properties: {
+        track: { type: "string", description: "Track name or search query" },
+      },
+    },
+  },
+  {
+    name: "music_pause",
+    description: "Pause music playback",
+    inputSchema: {
+      type: "object",
+      properties: {},
+    },
+  },
+  {
+    name: "music_stop",
+    description: "Stop music playback",
+    inputSchema: {
+      type: "object",
+      properties: {},
+    },
+  },
+  {
+    name: "music_next",
+    description: "Skip to next track",
+    inputSchema: {
+      type: "object",
+      properties: {},
+    },
+  },
+  {
+    name: "music_previous",
+    description: "Go to previous track",
+    inputSchema: {
+      type: "object",
+      properties: {},
+    },
+  },
+  {
+    name: "music_toggle_play_pause",
+    description: "Toggle play/pause",
+    inputSchema: {
+      type: "object",
+      properties: {},
+    },
+  },
+  {
+    name: "music_set_volume",
+    description: "Set music volume (0-100)",
+    inputSchema: {
+      type: "object",
+      properties: {
+        volume: { type: "number", description: "Volume from 0 to 100" },
+      },
+      required: ["volume"],
+    },
+  },
+  {
+    name: "music_now_playing",
+    description: "Get current track info",
+    inputSchema: {
+      type: "object",
+      properties: {},
+    },
+  },
+  {
+    name: "music_search",
+    description: "Search music library",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Search query" },
+        limit: { type: "number", description: "Max results (default 10)" },
+      },
+      required: ["query"],
+    },
+  },
+  {
+    name: "music_get_playlists",
+    description: "Get user playlists",
+    inputSchema: {
+      type: "object",
+      properties: {},
+    },
+  },
+  {
+    name: "music_play_playlist",
+    description: "Play playlist by name",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Playlist name" },
+      },
+      required: ["name"],
+    },
+  },
+
+  // Photos tools
+  {
+    name: "photos_list",
+    description: "List photos with optional filters",
+    inputSchema: {
+      type: "object",
+      properties: {
+        startDate: { type: "string", description: "Start date (ISO 8601)" },
+        endDate: { type: "string", description: "End date (ISO 8601)" },
+        album: { type: "string", description: "Album name" },
+        limit: { type: "number", description: "Max results (default 50)" },
+      },
+    },
+  },
+  {
+    name: "photos_get",
+    description: "Get a photo by id",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "Photo identifier" },
+        size: { type: "number", description: "Max dimension in pixels" },
+        format: { type: "string", description: "Format: jpeg, png, tiff" },
+      },
+      required: ["id"],
+    },
+  },
+  {
+    name: "photos_search",
+    description: "Search photos by date or location",
+    inputSchema: {
+      type: "object",
+      properties: {
+        startDate: { type: "string", description: "Start date (ISO 8601)" },
+        endDate: { type: "string", description: "End date (ISO 8601)" },
+        latitude: { type: "number", description: "Latitude" },
+        longitude: { type: "number", description: "Longitude" },
+        radius: { type: "number", description: "Radius in meters (default 1000)" },
+        limit: { type: "number", description: "Max results (default 50)" },
+      },
+    },
+  },
+  {
+    name: "photos_get_albums",
+    description: "List photo albums",
+    inputSchema: {
+      type: "object",
+      properties: {
+        type: { type: "string", description: "Album type: user, smart, all" },
+      },
+    },
+  },
+
+  // Audio tools
+  {
+    name: "audio_record",
+    description: "Record audio (max 5 minutes)",
+    inputSchema: {
+      type: "object",
+      properties: {
+        duration: { type: "number", description: "Duration in seconds" },
+        device: { type: "string", description: "Audio input device id" },
+        format: { type: "string", description: "Format: m4a or wav" },
+      },
+      required: ["duration"],
+    },
+  },
+  {
+    name: "audio_get_devices",
+    description: "List available audio input devices",
+    inputSchema: {
+      type: "object",
+      properties: {},
+    },
+  },
+
+  // Bluetooth tools
+  {
+    name: "bluetooth_scan",
+    description: "Scan for BLE devices",
+    inputSchema: {
+      type: "object",
+      properties: {
+        duration: { type: "number", description: "Scan duration in seconds (default 5)" },
+        serviceUUIDs: { type: "array", items: { type: "string" }, description: "Service UUID filters" },
+      },
+    },
+  },
+  {
+    name: "bluetooth_devices",
+    description: "Get devices from the last scan",
+    inputSchema: {
+      type: "object",
+      properties: {},
+    },
+  },
+  {
+    name: "bluetooth_status",
+    description: "Get Bluetooth adapter status",
+    inputSchema: {
+      type: "object",
+      properties: {},
+    },
+  },
+
   // File system tools
   {
     name: "file_read",
@@ -411,6 +618,26 @@ export const toolToCommand: Record<string, string> = {
   reminders_delete: "reminders.delete",
   reminders_get_lists: "reminders.getLists",
   location_get: "location.get",
+  music_play: "music.play",
+  music_pause: "music.pause",
+  music_stop: "music.stop",
+  music_next: "music.next",
+  music_previous: "music.previous",
+  music_toggle_play_pause: "music.togglePlayPause",
+  music_set_volume: "music.setVolume",
+  music_now_playing: "music.nowPlaying",
+  music_search: "music.search",
+  music_get_playlists: "music.getPlaylists",
+  music_play_playlist: "music.playPlaylist",
+  photos_list: "photos.list",
+  photos_get: "photos.get",
+  photos_search: "photos.search",
+  photos_get_albums: "photos.getAlbums",
+  audio_record: "audio.record",
+  audio_get_devices: "audio.getDevices",
+  bluetooth_scan: "bluetooth.scan",
+  bluetooth_devices: "bluetooth.devices",
+  bluetooth_status: "bluetooth.status",
   file_read: "file.read",
   file_write: "file.write",
   file_list: "file.list",

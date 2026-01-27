@@ -98,6 +98,24 @@ actor HTTPServer {
       return
     }
 
+    // Handle photo requests: GET /photo/{id}
+    if request.method == "GET", request.path.hasPrefix("/photo/") {
+      let photoId = String(request.path.dropFirst("/photo/".count))
+      Task {
+        await self.handlePhotoRequest(connection: connection, photoId: photoId)
+      }
+      return
+    }
+
+    // Handle audio requests: GET /audio/{id}
+    if request.method == "GET", request.path.hasPrefix("/audio/") {
+      let audioId = String(request.path.dropFirst("/audio/".count))
+      Task {
+        await self.handleAudioRequest(connection: connection, audioId: audioId)
+      }
+      return
+    }
+
     // Only accept POST /invoke
     guard request.method == "POST", request.path == "/invoke" else {
       self.sendResponse(
@@ -152,12 +170,81 @@ actor HTTPServer {
     }
   }
 
+  private func handlePhotoRequest(connection: NWConnection, photoId: String) async {
+    guard let fileURL = await PhotoStorage.shared.get(id: photoId) else {
+      self.sendResponse(
+        connection: connection,
+        statusCode: 404,
+        body: self.errorJSON(code: "NOT_FOUND", message: "Photo not found"))
+      return
+    }
+
+    do {
+      let data = try Data(contentsOf: fileURL)
+      let ext = fileURL.pathExtension.lowercased()
+      let contentType = switch ext {
+      case "jpg", "jpeg": "image/jpeg"
+      case "png": "image/png"
+      case "tiff": "image/tiff"
+      default: "application/octet-stream"
+      }
+      self.sendImageResponse(connection: connection, data: data, contentType: contentType)
+    } catch {
+      self.sendResponse(
+        connection: connection,
+        statusCode: 500,
+        body: self.errorJSON(code: "READ_ERROR", message: "Failed to read photo"))
+    }
+  }
+
+  private func handleAudioRequest(connection: NWConnection, audioId: String) async {
+    guard let fileURL = await AudioStorage.shared.get(id: audioId) else {
+      self.sendResponse(
+        connection: connection,
+        statusCode: 404,
+        body: self.errorJSON(code: "NOT_FOUND", message: "Audio not found"))
+      return
+    }
+
+    do {
+      let data = try Data(contentsOf: fileURL)
+      let ext = fileURL.pathExtension.lowercased()
+      let contentType = switch ext {
+      case "wav": "audio/wav"
+      case "m4a": "audio/m4a"
+      default: "application/octet-stream"
+      }
+      self.sendBinaryResponse(connection: connection, data: data, contentType: contentType)
+    } catch {
+      self.sendResponse(
+        connection: connection,
+        statusCode: 500,
+        body: self.errorJSON(code: "READ_ERROR", message: "Failed to read audio"))
+    }
+  }
+
   private nonisolated func sendImageResponse(connection: NWConnection, data: Data, contentType: String) {
     var response = "HTTP/1.1 200 OK\r\n"
     response += "Content-Type: \(contentType)\r\n"
     response += "Content-Length: \(data.count)\r\n"
     response += "Access-Control-Allow-Origin: *\r\n"
     response += "Cache-Control: public, max-age=300\r\n"
+    response += "Connection: close\r\n"
+    response += "\r\n"
+
+    var responseData = response.data(using: .utf8)!
+    responseData.append(data)
+
+    connection.send(content: responseData, completion: .contentProcessed { _ in
+      connection.cancel()
+    })
+  }
+
+  private nonisolated func sendBinaryResponse(connection: NWConnection, data: Data, contentType: String) {
+    var response = "HTTP/1.1 200 OK\r\n"
+    response += "Content-Type: \(contentType)\r\n"
+    response += "Content-Length: \(data.count)\r\n"
+    response += "Access-Control-Allow-Origin: *\r\n"
     response += "Connection: close\r\n"
     response += "\r\n"
 
