@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.5 - 2026-01-26
+
+### Fixed
+- Reverted EventKit store reset that caused Calendar/Reminders status to incorrectly show "Not Determined" after granting access and clicking "Refresh All"
+
 ## 1.0.4 - 2026-01-26
 
 ### Fixed
