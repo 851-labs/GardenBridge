@@ -85,9 +85,7 @@ Required assets:
 - `GardenBridge.dmg`
 - `appcast.xml`
 
-## Step 6: Update Homebrew Tap (Optional)
-
-If Homebrew distribution is needed:
+## Step 6: Update Homebrew Tap
 
 1. Download the DMG and compute SHA256:
    ```bash
