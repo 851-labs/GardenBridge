@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.6 - 2026-01-26
+
+### Fixed
+- Photos permission prompt not appearing due to app not being registered in System Settings
+
 ## 1.0.5 - 2026-01-26
 
 ### Fixed
